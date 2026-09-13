@@ -1,4 +1,4 @@
-:root{font-family:'PingFang SC','Microsoft YaHei','Noto Serif SC',serif;color:#403c44;background:#f2eadf;font-synthesis:none}*{box-sizing:border-box}body{margin:0;min-width:320px;background:radial-gradient(circle at 20% 10%,#fffaf2,#e9dfd3 75%);min-height:100vh}
+:root{font-family:'PingFang SC','Microsoft YaHei','Noto Serif SC',serif;color:#403c44;background:#f2eadf;font-synthesis:none;--dlg-paper:rgba(246,237,219,.92);--dlg-name:#b8823a;--dlg-text:#4a3f33;--font-cn:"Noto Serif SC","Songti SC","PingFang SC",serif;--chrome-top:calc(78px + env(safe-area-inset-top))}*{box-sizing:border-box}body{margin:0;min-width:320px;background:radial-gradient(circle at 20% 10%,#fffaf2,#e9dfd3 75%);min-height:100vh}
 /* hidden 属性必须真的隐藏：本作靠 .dialogue-box 的 hidden 开关文字层，若被 display 规则覆盖就会变成透明挡板 */
 [hidden]{display:none!important}
 /* 层级阶梯（.scene 是独立 stacking context: isolation:isolate）
@@ -19,18 +19,52 @@
    （从前那层现画的 SVG 占位小人已删除，见 sceneManager 的注释）。 */
 /* iPhone 安全区：刘海屏顶部与手势条底部会压住 HUD 和底部两条横栏。
    需要 index.html 的 viewport-fit=cover，env() 才会拿到非零值。 */
-.game{width:min(1100px,100vw);margin:auto;min-height:100vh;padding:calc(18px + env(safe-area-inset-top)) calc(22px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(22px + env(safe-area-inset-left));display:flex;flex-direction:column;gap:12px;position:relative}
-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+/* `.game` 从"居中卡片的外框"退成"一个不参与布局的挂点"。
+   从前它是 width:min(1100px,100vw) 的居中列，页眉/舞台/页脚住在里面，于是舞台是**一张卡片**：
+   两侧露着页面背景、四角是 28px 圆角、背景图被 overflow:hidden 关在 1100×741 里。
+   2026-09 改成"背景画面铺满整个窗口"之后，舞台自己就是那一页（见 .scene），
+   所以这里不再需要宽度上限、内边距和 flex 列 —— 这些数值现在住在 header 上。
+   注意 `.game` 必须保持 position:relative 且**不带任何 transform/filter**：
+   .scene 是 fixed 的，一旦祖先变成包含块，它就会被重新框回一个小盒子里。 */
+.game{position:relative;min-height:100vh}
+/* 页眉是浮在场景之上的固定条（.scene 的 z-index 是 1，这里是 2）。
+   层级上限是有意的：首页/尾页是 z-index 5 / 20 的全屏页，**必须**盖住页眉 ——
+   "玩家看到的第一眼"里不该有 HUD（上一版专门为此把这两页做成全屏层）。
+   背景图铺到页眉底下之后，深色场景（夜晚/雨幕）上的深色品牌字会读不出来，
+   所以用 ::before 压一道自上而下的柔光；它按 z-index:-1 画在本层内容之下、
+   仍在 .scene 之上（header 有 z-index，自己就是 stacking context）。 */
+header{position:fixed;top:0;left:0;right:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:calc(14px + env(safe-area-inset-top)) calc(22px + env(safe-area-inset-right)) 12px calc(22px + env(safe-area-inset-left))}
+header::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(255,250,242,.82),rgba(255,250,242,.42) 62%,rgba(255,250,242,0))}
+/* 页眉里**没有底板**的两处文字（品牌名与「重新开始」）要自己带光晕。
+   柔光压边会在页眉下沿淡出到 0，而窄屏上页眉要换行到 162px 高 ——
+   最后一行按钮正好落在淡出的那一段上：
+   实测 390px 宽时「重新开始」在 y 110–154、柔光在那里只剩约 0.05 的 alpha，
+   深灰字(#777)压在深色宿舍照上等于没写（截图里它整颗消失）。
+   有底板的 chip / hud-btn 不受影响，它们自带 #ffffff91。 */
+header .brand,header .reset-btn{text-shadow:0 1px 7px rgba(255,250,242,.92),0 0 2px rgba(255,250,242,.8)}
 .brand{font-size:24px;font-weight:700;letter-spacing:.12em}.brand small{display:block;font-size:9px;letter-spacing:.25em;opacity:.5}
 .stats{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px}
 .chip{padding:6px 10px;border-radius:999px;background:#ffffff91}.chip.mood{color:#7a6b4f}.chip.light{color:#c79a3a}.chip.bond{color:#b3555a}
 .mute-btn,.reset-btn{border:0;background:transparent;color:#777;cursor:pointer;font-size:13px}.reset-btn{text-decoration:underline}
-/* 舞台撑满可用高度（flex:1 + min-height 兜底）：
-   只用 min-height:620px 的话，窗口一高就变成"内容贴着上半屏、下面留一大片空白背景"——
-   实测 1280×860 下标清/立绘/台词全都停在 693px 处，底下 139px 是空页面，
-   于是"所有文字都在界面下部"这条要求在最常见的窗口尺寸下只做到了一半。
-   flex:1 让舞台吃到 100vh 减去页眉/页脚，底部演出带才真的贴着界面下边缘。 */
-.scene{position:relative;isolation:isolate;flex:1 1 auto;min-height:620px;overflow:hidden;border-radius:28px;background:#ded1c4;box-shadow:0 18px 50px #74625c2b;transition:filter .8s,background .8s}
+/* 舞台 = 整页。这是 2026-09「把所有背景画面全屏」的落点。
+   从前 .scene 是 .game 里那张 1100px 的圆角卡片（flex:1 + min-height:620px），
+   背景图 / 叠加层 / 插画 / 演出带全都以它为坐标系，于是画面四周永远露着页面底色。
+   改成 fixed;inset:0 之后，它内部的**一切**（.content 里的 .scene-background /
+   .scene-overlay、.moment-cg 的插画、.walk 的校园俯瞰图、演出带）自动全部铺满视口 ——
+   这些子元素本来就写着 inset:0，不需要逐个改。
+
+   为什么不"把背景图单独抽出来做成 fixed 层"（看起来更小的改法）：
+   .scene 带 data-mood 时会吃到 `filter:saturate(…)`，而 filter 会让这个元素成为
+   **fixed 后代的包含块** —— 背景图会被悄悄框回卡片里、还会被 overflow:hidden 裁掉。
+   夜晚/金色档才会复现，是最难查的那种"某些场景没全屏"。舞台自己 fixed 就没有这个坑。
+
+   随之去掉的三样，都是卡片形态的遗物：
+     · `border-radius:28px` —— 铺满视口就没有角可圆；
+     · `box-shadow`        —— 页面边缘没有"外面"可以投影；
+     · `flex:1` / `min-height:620px` —— 那是"在页眉页脚之间撑高"的写法，现在没有页眉页脚占位。
+   `isolation:isolate` 保留：它把舞台内部的层级阶梯关在这一层里（见文件顶部那张表），
+   于是 .scene 自己只要一个 z-index:1，页眉(2) / 首页尾页(5,20) 就能干净地压在它上面。 */
+.scene{position:fixed;inset:0;z-index:1;isolation:isolate;overflow:hidden;background:#ded1c4;transition:filter .8s,background .8s}
 .scene[data-theme=map]{background:linear-gradient(150deg,#b8d2c4,#e8d3b8)}.scene[data-theme=night]{background:linear-gradient(160deg,#1d2842,#34445c)}.scene[data-theme=rain]{background:linear-gradient(160deg,#8b9fae,#bfccd0)}.scene[data-theme=dusk]{background:linear-gradient(160deg,#e7a689,#7baac3)}
 .scene[data-mood=dark]{filter:saturate(.82)}.scene[data-mood=gold]{filter:saturate(1.08)}
 .content{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
@@ -41,7 +75,17 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;fl
    压到 42% 后基本看不出是夜晚；雨幕最浓处 alpha 106，压到 42% 后只剩 44。
    所以浓度一律由图的 alpha 决定，CSS 不再二次压暗。 */
 .scene-background{position:absolute;inset:0;background-size:cover;background-position:center;pointer-events:none;opacity:1}.scene-overlay{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;opacity:1}
-.location-title,.map-title{position:absolute;top:28px;left:32px;font-size:20px;font-weight:600;opacity:.75;z-index:2;pointer-events:none}.map-title{color:#fff}
+/* 地点名的落点从"舞台内的 28px"改成"页眉之下"—— 舞台现在是整页，
+   28px 正好撞进浮在它上面的页眉（页眉 z-index 2、地点名在 .scene 里是 1，
+   也就是说它会被那道白色柔光**盖住**，真机里读作一团灰糊）。
+   --chrome-top 在 :root 里给（页眉高度 + 安全区），窄屏页眉会换行，那条媒体查询里另行加高。
+
+   两个地点名的文字色是相反的（这里是深墨、地图页是白的），所以**不能共用一道阴影**：
+   深色字要浅色光晕（在暗场景上把字托出来），白字要深色投影（在亮天空上勾出轮廓）。
+   从前它们住在实心卡片里，背景再怎么花都有卡片兜底；现在直接坐在照片上，只能靠这一道。 */
+.location-title,.map-title{position:absolute;top:var(--chrome-top);left:32px;font-size:20px;font-weight:600;opacity:.75;z-index:2;pointer-events:none}
+.location-title{text-shadow:0 1px 7px rgba(255,250,242,.9),0 0 2px rgba(255,250,242,.75)}
+.map-title{color:#fff;text-shadow:0 1px 7px rgba(16,22,32,.75),0 0 2px rgba(16,22,32,.55)}
 .map-card{position:absolute;inset:12%;border-radius:24px;background:linear-gradient(140deg,#d9e5d2aa,#f6dfc4aa);border:2px solid #ffffff88}
 .hotspot{position:absolute;border:1px dashed #fff;background:#ffffff35;border-radius:18px;color:#433f42;font-family:inherit;cursor:pointer;transition:transform .2s,background .2s}.hotspot:hover{transform:scale(1.04);background:#fff8}.hotspot b,.hotspot small{display:block}.hotspot small{opacity:.65;margin-top:4px}
 /* 地点调试入口：当前阶段唯一的"下一目标"入口。
@@ -79,7 +123,17 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;fl
       高度按交接包的原生比例算（见下），所以路线点就是人物中心，不用补偏移。
    4. 转场期间立绘/信号/云朵层必须是空的（WalkSystem 调了 ui.resetLayers()），
       否则上一幕的立绘会孤零零站在校园地图上。 */
-.walk{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:18px;background:#1d2842}
+/* z-index:5 —— **必须高于底部演出带（4）**，这是一条真机验收抓出来的教训：
+   转场是一整屏的接管画面，它自己就是"点击跳过"的点击区，里面还住着「加速 / 跳过」两颗按钮。
+   演出带是另一条整宽的点击面（"点哪儿都能继续"），两者抢的是同一块屏幕下沿。
+   从前 `.walk` 写 2 也能用，纯粹是因为**那时演出带在转场期间只有 18px 高**
+   （内容被 resetLayers 清空，高度只剩余量内边距）。
+   2026-09 对白框改成铺底 fixed 纸面之后，演出带恒定写死 `padding-bottom:28vh`，
+   转场期间变成 258px 高的一整条 —— 于是「加速」按钮（实测 y 792–842）被它盖住，
+   Playwright 报 "stage-bottom intercepts pointer events"，点不动。
+   这个坑值得记：低于它的 2 曾经是"对"的，是另一个改动让它变成了"错"的，
+   而 walk-shots.mjs 那次没跑，所以没在当场炸出来（tests/browser/walk-shots.mjs 会点这颗按钮）。 */
+.walk{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:18px;background:#1d2842}
 .walk-stage{flex:1 1 auto;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
 .walk-map{position:relative;background-size:100% 100%;background-position:center;background-repeat:no-repeat;border-radius:18px;box-shadow:0 20px 50px #0006;animation:walkIn .5s ease-out}
 /* 目的地点位：一圈脉冲 + 地点名，让"要走到哪儿"在走的过程中一直可见 */
@@ -124,7 +178,7 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;fl
    intensity 2（所有事件都是 2）实测落在 192px 宽，在 1056px 的舞台上是一个看得清的贴纸。
    同时 drop-shadow 加重：信号经常压在课桌/椅子的密细节上（D1_0810 就是），
    轻投影分不开，加一圈更大的软阴影才读得出来。 */
-.signal-layer{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;z-index:2}.signal{position:relative;margin-bottom:230px;--signal-base:156px;--signal-scale:1;--signal-fit:1;--signal-w:calc(var(--signal-base) * var(--signal-scale) * var(--signal-fit));animation:pulse 1.2s infinite}
+.signal-layer{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;z-index:2}.signal{position:relative;margin-bottom:calc(28vh + 82px);--signal-base:156px;--signal-scale:1;--signal-fit:1;--signal-w:calc(var(--signal-base) * var(--signal-scale) * var(--signal-fit));animation:pulse 1.2s infinite}
 .signal-icon{display:block;width:var(--signal-w);height:auto;filter:drop-shadow(0 4px 8px #0003) drop-shadow(0 10px 22px #00000026)}
 .signal[data-intensity="2"]{--signal-scale:1.23}.signal[data-intensity="3"]{--signal-scale:1.46}
 /* 圆形图标类信号（红叉 / 手机 / 灰圈）：原生 256×256，同宽会比云图显得过大，收到 96px 基准 */
@@ -135,6 +189,8 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;fl
    立绘行在上，文字在下，选项在最下，三者同属一个底部堆叠（而不是各自 absolute 到不同角落）。
    宽度固定、高度由内容撑开（cast 高 → 带子高），所以立绘、台词、选项永远不会互相覆盖。 */
 .stage-bottom{position:absolute;left:0;right:0;bottom:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:10px;padding:0 calc(16px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));pointer-events:auto;cursor:pointer}
+/* 下边距的实际数值在 §「iPhone 安全区」那条里给（28vh + 安全区）—— 这里保持原样，
+   免得同一个 padding-bottom 有两个说法。 */
 .bar{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%}
 
 /* 立绘行：**一个人物居中、两个人物分居左右**。data-cast 由 UiSystem.showCast 写入，
@@ -158,17 +214,29 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;fl
 /* 底部对白框：**全作唯一的文字容器**（说话者 + 台词）。
    从前这里是 L1 专用，另有 `.cloud` 气泡承担 L0 环境独白 / L2 事件反馈 / L3 终章；
    2026-09 决定删掉云朵、所有文字都走这一个框（见 DialogueSystem 头部注释）。
-   立绘不在这个框里，在它上面的 .cast-layer —— 台词多长都不会把人挤歪。 */
-.dialogue-box{position:relative;z-index:3;width:min(94%,860px);min-height:104px;max-height:34vh;overflow:auto;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:16px 24px 16px 22px;border-radius:20px;background:#fffaf2f7;box-shadow:0 10px 30px #403c4430;cursor:pointer;animation:boxIn .28s ease-out}
-/* 语气色调：脚本给每句标的「云朵（灰/白/金）」颜色。云朵的形状没了，颜色留下来 ——
-   它现在只染左边那条竖线（一条 3px 的边，不是一个气泡），白=平和、灰=低落、金=心动。 */
-.dialogue-box:before{content:'';position:absolute;left:8px;top:16px;bottom:16px;width:3px;border-radius:999px;background:#d8cfc2}
-.dialogue-box[data-tone="white"]:before{background:#e0d6c6}
-.dialogue-box[data-tone="dark"]:before{background:#6d7181}
-.dialogue-box[data-tone="gold"]:before{background:#e0b45c}
+   立绘不在这个框里，在它上面的 .cast-layer —— 台词多长都不会把人挤歪。
+
+   2026-09 决定：整块换成交接包 dialogue-box-preview-package 的视觉。它和首页/尾页
+   （.title-screen / .ending）同属"fixed 铺满视口"那一类 —— 整条贴住窗口底边、直角铺满、
+   宣纸底 + 宋体 + 顶沿云雾软边 + 纸张纹理，不再是居中的圆角浮层卡片。
+   随卡片形态一起拿掉的：
+     · `border-radius:20px` 与 `box-shadow` —— 纸是铺在画面上的，不该像浮起来的控件；
+     · `width:min(94%,860px)` —— 铺底要求整宽，不再居中留白；
+     · `overflow:auto` / `max-height:34vh` —— 交接包用 min-height:28vh 兜底，
+       而且 overflow 一旦非 visible，顶沿的软边（::before 在框外 46px）会被裁掉；
+     · 语气色竖线（原来挂在 :before 的 3px 彩条，`data-tone` 灰/白/金）。
+       它的位置现在归云雾软边，语气色暂时没有视觉出口 —— `data-tone` 仍写在 DOM 上，
+       内容侧 sevenDay 校验照旧要求每句有 tone，要恢复表达只能另找出口（见 DialogueSystem）。
+   `.box-speaker` / `.box-text` 仍是 .dialogue-box 的 flex 子项，span 会被块化，
+   `min-height` 因此照常生效（交接包里它们本来是 p，这里不必改 DOM）。 */
+.dialogue-box{position:fixed;left:0;right:0;bottom:0;z-index:3;box-sizing:border-box;min-height:28vh;padding:40px clamp(20px,6vw,64px) 30px;display:flex;flex-direction:column;justify-content:center;gap:6px;background:var(--dlg-paper);font-family:var(--font-cn);cursor:pointer;animation:boxIn .28s ease-out}
+/* 顶边软化：多个模糊光斑拼出云雾状的不规则边界，让纸不是"贴"上去的 */
+.dialogue-box:before{content:'';position:absolute;left:0;right:0;top:-46px;height:90px;pointer-events:none;filter:blur(18px);background:radial-gradient(ellipse 22% 60% at 8% 65%,var(--dlg-paper) 0%,transparent 72%),radial-gradient(ellipse 26% 65% at 26% 55%,var(--dlg-paper) 0%,transparent 72%),radial-gradient(ellipse 30% 70% at 48% 60%,var(--dlg-paper) 0%,transparent 72%),radial-gradient(ellipse 26% 65% at 70% 55%,var(--dlg-paper) 0%,transparent 72%),radial-gradient(ellipse 22% 60% at 92% 65%,var(--dlg-paper) 0%,transparent 72%)}
+/* 纸张纹理：6% 噪点 + multiply，压在文字之下（所以文字要抬到 z-index:1） */
+.dialogue-box:after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.06;mix-blend-mode:multiply;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
 .dialogue-box.dissolve{animation:boxOut .65s forwards}
-.box-speaker{font-size:12px;letter-spacing:.2em;color:#c79a3a}
-.box-text{font-size:16px;line-height:1.8;color:#5b5660;min-height:2.6em}
+.box-speaker{font-size:clamp(13px,1.6vw,15px);letter-spacing:.1em;color:var(--dlg-name);margin:0 0 8px;position:relative;z-index:1}
+.box-text{font-size:clamp(16px,2vw,20px);line-height:1.75;color:var(--dlg-text);margin:0;min-height:3.4em;position:relative;z-index:1}
 /* 地点过渡：约 1 秒的地点名提示 */
 .location-transition{position:fixed;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;background:#1d2842e0;color:#f6efe2;font-size:30px;letter-spacing:.35em;pointer-events:none;animation:transitionIn .9s ease-out}
 @keyframes transitionIn{0%{opacity:0}35%{opacity:1}100%{opacity:0}}
@@ -202,7 +270,11 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;fl
 .bottle input::placeholder{color:#8b8290}
 .bottle-send{border:0;border-radius:999px;padding:10px 18px;cursor:pointer;font-family:inherit;font-size:13px;background:#c79a3a;color:#fff;white-space:nowrap}
 .bottle-send:hover{background:#b98a2c}
-footer{display:flex;justify-content:center;font-size:12px;opacity:.55}
+/* 这里原本是 footer{display:flex;justify-content:center;font-size:12px;opacity:.55}，
+   装的是那句「用行动说话。」。舞台改成铺满视口之后它**没有位置了**：
+   它整条都被 .scene（z-index:1）盖住，而露出它的那半边正好是铺底对白纸所在的下边缘 ——
+   上一版"纸透出页脚"的观感就是这么来的（纸是 .92 alpha，页脚在它下面）。
+   所以连 DOM 一起删掉（见 uiSystem 的 renderShell），而不是留一条永远看不见的规则。 */
 .shake{animation:shake .42s}
 @keyframes boxOut{to{opacity:0;transform:translateY(-14px)}}
 @keyframes signalOut{to{opacity:0;transform:scale(1.6)}}
@@ -319,11 +391,14 @@ footer{display:flex;justify-content:center;font-size:12px;opacity:.55}
 .reset-btn{background:transparent;text-decoration:underline}
 
 /* iPhone 安全区：刘海屏顶部与手势条底部会压住 HUD 和底部演出带。
-   （.game 的内边距已在上面按 env() 处理；底部这条由 .stage-bottom 自己算 ——
-    立绘行 / 台词 / 选项都住在它里面，安全区只需要在一处生效，多了反而叠成双份留白。）
-   全屏页（标题页 / 结局页）是 fixed 铺满视口的，不吃 .game 的内边距，
-   所以四边都得自己算一遍：横屏时刘海会切掉标题的左右，竖屏时手势条会压住最下面那颗按钮。 */
-.stage-bottom{padding-bottom:calc(18px + env(safe-area-inset-bottom))}
+   （顶部/左右这条现在归 header —— 舞台铺满视口之后 .game 已经没有内边距了，
+     页眉是浮在场景最上面的那条，刘海正好切到它；底部这条由 .stage-bottom 自己算 ——
+     立绘行 / 台词 / 选项都住在它里面，安全区只需要在一处生效，多了反而叠成双份留白。）
+   全屏页（标题页 / 结局页）是 fixed 铺满视口的，不吃页眉那条 padding，
+   所以四边都得自己算一遍：横屏时刘海会切掉标题的左右，竖屏时手势条会压住最下面那颗按钮。
+   对白框改成铺底 fixed 条之后，它自己就压在窗口底边上、够不着 .stage-bottom 的 padding，
+   所以这里必须把 28vh 那条纸的高度补进来 —— 否则立绘会被纸盖住。 */
+.stage-bottom{padding-bottom:calc(28vh + 18px + env(safe-area-inset-bottom))}
 .title-screen,.ending{padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left))}
 
 /* 开局问卷（现在只剩"那时候的TA，是——"一题）。
@@ -348,8 +423,10 @@ footer{display:flex;justify-content:center;font-size:12px;opacity:.55}
    一个人物居中、两个人物分居左右。所以插画在场时立绘行让位（下面那条规则），
    画面里不该同时存在两套"这两个人"。
    铁律：整层 pointer-events:none。它只是画面，绝不能吃掉对白/干预按钮的点击。
-   底部留 148px 给底部演出带里的文字与干预按钮 —— 否则人物会被压在框下面。 */
-.moment-cg{position:absolute;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;padding-bottom:148px;overflow:hidden;pointer-events:none;animation:cgIn .45s ease-out}
+   底部让出 28vh + 20px 给铺底对白框 —— 否则人物会被压在纸下面。
+   （这两个数必须与 .dialogue-box 的 min-height:28vh 保持同步：对白框一加高，
+     插画就会从"刚好让开"变成"被盖住半截"，而桌面端没有断言在量这一条。） */
+.moment-cg{position:absolute;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;padding-bottom:calc(28vh + 20px);overflow:hidden;pointer-events:none;animation:cgIn .45s ease-out}
 /* 背景层**不能**用插画铺满：那会把时相底图（卧室·清晨 / 教室·晨光 / 熄灯的卧室）整个盖掉，
    玩家只看得到一团放大 28px 的校服色块 —— 时相接线的观感收益直接归零（真浏览器截图实测）。
    改成两层，各管一件事：
@@ -387,12 +464,24 @@ footer{display:flex;justify-content:center;font-size:12px;opacity:.55}
    那条横带只有 ~100px 高，192px 宽的信号下部会探到选项按钮上。
    0.8 之后约 154×102，正好落在插画底边与选项之间。
 
+   让位值 2026-09 从 `28vh + 28px` 加到 `28vh + 100px`（窄屏 164px）——
+   这是"对白框换成铺底 fixed 纸面"带出来的第二个后果，和 .walk 那条 z-index 是同一个根：
+   **干预窗口里对白纸是 hidden 的，但 .stage-bottom 的 `padding-bottom:28vh` 不跟着消失**，
+   于是选项行被顶到离底边 28vh+18px+dockH 的位置，比从前高得多的一块地方。
+   实测（1280×860，三个选项一行）：
+     选项行 541–601（高 60）、信号 488–592 → 压住 51px（真机截图里那朵乌云正好卡在
+     「捂耳朵 / 关嘴巴」中间露半截）。把它抬到 `28vh + 100px` 后信号落在 415–519，让开 22px。
+   窄屏选项换行到两行（390×844 实测高 130、选项行顶 466），所以窄屏那条要加得更多（164px）。
+   这两个数是**量出来的**，靠 tests/browser/walk-shots.mjs 里
+   "信号在文字带上方（没有压住台词与选项）"那条断言钉住；窄屏没有同款断言，
+   改窄屏那条值时请照上面这个方法重新量。
+
    从前这里是 `justify-content:flex-start;padding-left:32px`，理由是"挪到卡片左侧的空白区" ——
    那个理由在插画还是**不透明照片卡**的时候成立（卡片四周有留白）；
    D1 立绘改成真抠图之后卡片没了、插画铺满宽度，左边不再是空白，
    信号反而压在课桌细节上（真机截图里那朵乌云正好落在椅背上，读不出来），
    而居中会挤进两个人之间的缝里、蹭到老师的袖子（第二次真机验收抓到的）。 */
-.scene.has-cg .signal-layer{justify-content:center;align-items:flex-end;padding-bottom:calc(148px + 8px)}
+.scene.has-cg .signal-layer{justify-content:center;align-items:flex-end;padding-bottom:calc(28vh + 100px)}
 .scene.has-cg .signal{margin-bottom:0;--signal-fit:.8}
 /* 文字不需要再躲插画了：对白框坐在界面最底部的演出带里，
    而插画层自己留了 148px 的底部余量（见 .moment-cg 的 padding-bottom），
@@ -412,17 +501,17 @@ footer{display:flex;justify-content:center;font-size:12px;opacity:.55}
   /* 推近镜头是最典型的晕动触发源，减动效时直接取消而不是"变快" */
   .scene.zooming .scene-background,.scene.zooming .scene-overlay{transform:none!important}
 }
-@media(max-width:650px){.game{padding:10px;padding-top:calc(10px + env(safe-area-inset-top));padding-bottom:calc(10px + env(safe-area-inset-bottom));padding-left:calc(10px + env(safe-area-inset-left));padding-right:calc(10px + env(safe-area-inset-right))}.brand{font-size:18px}.stats{font-size:10px;justify-content:flex-end}.scene{min-height:calc(100vh - 108px);border-radius:20px}.map-card{inset:16% 6%}.location-title,.map-title{left:20px;top:20px}.hotspot{font-size:12px}.signal{--signal-base:112px;margin-bottom:180px}.dialogue-box{font-size:14px}.hud-btn{min-height:44px;font-size:13px;padding:10px 12px}.moment-cg{padding-bottom:calc(168px + env(safe-area-inset-bottom))}.cg-row{gap:8px;max-width:98%}.scene.has-cg .signal-layer{justify-content:center;align-items:flex-end;padding-left:0;padding-bottom:calc(168px + env(safe-area-inset-bottom))}.scene.has-cg .signal{--signal-fit:.7}
+@media(max-width:650px){:root{--chrome-top:calc(172px + env(safe-area-inset-top))}header{padding:calc(10px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) 8px calc(10px + env(safe-area-inset-left))}.brand{font-size:18px}.stats{font-size:10px;justify-content:flex-end}.map-card{inset:16% 6%}.location-title,.map-title{left:20px}.hotspot{font-size:12px}.signal{--signal-base:112px;margin-bottom:calc(28vh + 12px)}.dialogue-box{font-size:14px}.hud-btn{min-height:44px;font-size:13px;padding:10px 12px}.moment-cg{padding-bottom:calc(28vh + 60px + env(safe-area-inset-bottom))}.cg-row{gap:8px;max-width:98%}.scene.has-cg .signal-layer{justify-content:center;align-items:flex-end;padding-left:0;padding-bottom:calc(28vh + 164px + env(safe-area-inset-bottom))}.scene.has-cg .signal{--signal-fit:.7}
 /* 窄屏：立绘行不能把舞台吃掉 —— 两张大图并排时收窄间距、压字号，
    否则底部演出带会顶到屏幕一半高度，背景就看不见了。 */
 .cast-layer{gap:14px}
 .cast-layer[data-cast="2"]{padding:0 1%}
 .portrait img{height:clamp(104px,22vh,178px)}
 .portrait-name{font-size:9px;padding:1px 7px}
-.stage-bottom{gap:8px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
-.dialogue-box{padding:12px 16px;border-radius:16px}
-.box-text{font-size:14px}
-.box-speaker{font-size:11px}
+.stage-bottom{gap:8px;padding-bottom:calc(28vh + 12px + env(safe-area-inset-bottom))}
+.dialogue-box{padding:30px 20px 22px}
+/* 字号交给 .box-speaker / .box-text 的 clamp（交接包的设计就是让它自己缩），
+   这里不再压 14px/11px —— 手机上 16px 起反而更好读。 */
 .choice-art{width:104px;height:139px}
 .custom{gap:16px;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
 .custom-prompt{font-size:18px}

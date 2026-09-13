@@ -56,7 +56,12 @@ describe('点击安全（全局样式审计）', () => {
     // `.walk` 是人物自动移动转场：它铺满内容区**而且必须收点击** ——
     // 整块转场就是"跳过"的点击区（和游戏别处"点哪儿都能继续"一致），
     // 里面还住着「加速 ×N」与「回车跳过」两个按钮。所以它属于交互容器那一类。
-    const INTERACTIVE_CONTAINERS = new Set(['.content', '.ending', '.custom', '.title-screen', '.gallery', '.walk']);
+    //
+    // `.scene` 是 2026-09 加进来的：舞台自己变成 fixed;inset:0 的全屏层之后，
+    // 它也满足"铺满 + 有层级 + 不收点击"这三条形式特征。但它不是装饰层 ——
+    // 它是**这一页本身**，背景/插画/演出带全是它的子节点；
+    // 给它 pointer-events:none 会把整局的继续点击一并关掉。
+    const INTERACTIVE_CONTAINERS = new Set(['.content', '.ending', '.custom', '.title-screen', '.gallery', '.walk', '.scene']);
     const offenders = rules
       .filter((r) =>
         /inset:\s*0\b/.test(r.body)
@@ -72,13 +77,14 @@ describe('点击安全（全局样式审计）', () => {
     expect(bodyOf('.dialogue-box')).not.toMatch(/pointer-events:\s*none/);
   });
 
-  it('语气色只染对白框左边那条竖线，不是第二个文字容器', () => {
-    // 脚本给每句标的「云朵（灰/白/金）」颜色保留下来了，但它只应该出现在 :before 那条竖线上。
-    // 这条断言防的是"把云朵以另一种形式加回来"：框本体不许再按语气变色。
+  it('语气色不再有视觉出口：样式表里不该再有 .dialogue-box[data-tone] 的规则', () => {
+    // 2026-09：对白框整块换成交接包 dialogue-box-preview-package 的铺底纸面，
+    // ::before 让给了顶沿的云雾软边，原来那条 3px 语气色竖线随之取消。
+    // `data-tone` 仍然写在 DOM 上（内容侧 sevenDay 校验要求每句都有 tone，
+    // 见 src/systems/dialogueSystem.ts），但没有视觉出口 ——
+    // 半留状态最危险：留着规则会让下一个人以为竖线还在，"改语气色没反应"就成了谜题。
     for (const tone of ['dark', 'white', 'gold']) {
-      const body = bodyOf(`.dialogue-box[data-tone="${tone}"]:before`);
-      expect(body, `语气色 ${tone} 应当只改竖线颜色`).toMatch(/background:\s*#/);
-      expect(body, `语气色 ${tone} 不该改框本体`).not.toMatch(/animation|position/);
+      expect(bodyOf(`.dialogue-box[data-tone="${tone}"]:before`), `语气色 ${tone} 的竖线规则应该已经删掉`).toBe('');
     }
     expect(bodyOf('.dialogue-box[data-tone="dark"]'), '框本体不该被语气色染背景').not.toMatch(/background:\s*#555864/);
   });
@@ -102,15 +108,22 @@ describe('点击安全（全局样式审计）', () => {
     expect(rules.some((r) => r.selectors.some((s) => /(^|[ ,>])\.debug-badge\b/.test(s))), '样式表里还有 .debug-badge 规则').toBe(false);
   });
 
-  it('所有文字都在界面下部：对白框不再是自己定位到某处的浮层', () => {
+  it('所有文字都在界面下部：对白框是铺满视口底边的固定条，选项带仍不自己定位', () => {
     // 从前云朵是 `position:absolute;top:14%`（舞台中上部），对白框是 `left:50%;bottom:20px`
     // 自己算位置 —— 两处各算各的，于是文字会飘到插画人物脸上去。
-    // 现在它是 .stage-bottom 里的流内元素：文字在哪只由"底部演出带"一处决定。
-    for (const sel of ['.dialogue-box', '.dock']) {
-      expect(bodyOf(sel), `${sel} 不该自己绝对定位（文字位置应由 .stage-bottom 统一决定）`).not.toMatch(/position:\s*(absolute|fixed)/);
-      expect(bodyOf(sel), `${sel} 不该自己写 top/bottom`).not.toMatch(/(^|;)\s*(top|bottom):/);
-    }
-    expect(bodyOf('.stage-bottom')).toMatch(/bottom:\s*0/);
+    // 2026-09 换成交接包的铺底纸面后，对白框改成"整条贴住窗口底边"，和首页/尾页
+    // （.title-screen / .ending）同属"fixed 铺满视口"那一类。
+    // 这条断言守的仍然是同一件事：文字落点只有一处说了算，不会飘回舞台中部。
+    // 底部演出带用 padding-bottom:28vh 给这条固定条让位，立绘因此不会被纸压住。
+    const box = bodyOf('.dialogue-box');
+    expect(box, '对白框要铺满视口底边（fixed）').toMatch(/position:\s*fixed/);
+    expect(box, '对白框要贴住窗口底边').toMatch(/bottom:\s*0/);
+    expect(box, '对白框要整宽铺底').toMatch(/left:\s*0/);
+    expect(box, '对白框要整宽铺底').toMatch(/right:\s*0/);
+    expect(box, '圆角浮层卡片已经换掉了').not.toMatch(/border-radius/);
+    expect(bodyOf('.dock'), '.dock 不该自己绝对定位（选项位置由 .stage-bottom 统一决定）').not.toMatch(/position:\s*(absolute|fixed)/);
+    expect(bodyOf('.stage-bottom'), '底部演出带要贴着舞台下边缘').toMatch(/bottom:\s*0/);
+    expect(bodyOf('.stage-bottom'), '底部演出带要给固定条让出高度，否则立绘被纸压住').toMatch(/padding-bottom:calc\(28vh/);
   });
 
   it('立绘行：一个人物居中，两个人物分居左右（由 data-cast 驱动，不靠调用方传对 class）', () => {
@@ -139,10 +152,61 @@ describe('点击安全（全局样式审计）', () => {
       .not.toMatch(/\.student[\s.,:{[]/);
   });
 
-  it('舞台撑满可用高度（不能只写 min-height：高窗口下文字会停在半屏处）', () => {
+  /**
+   * 舞台 = 整页：**所有背景画面全屏**（2026-09）。
+   *
+   * 从前 `.scene` 是 `.game` 里那张 1100px 的圆角卡片（`flex:1` + `min-height:620px`），
+   * 背景图 / 叠加层 / 插画 / 校园俯瞰图全都以它为坐标系 —— 于是画面四周永远露着页面底色，
+   * 铺满视口的对白纸反而比背景宽出一截。
+   *
+   * 现在它是 `fixed;inset:0` 的全屏层，内部那些写着 `inset:0` 的子元素**自动**跟着铺满，
+   * 不需要逐个改。jsdom 不算布局，"真的铺满了没有"由 tests/browser/fullpage-shots.mjs
+   * 量 `.scene-background` 的 rect 与视口是否相等来守。
+   *
+   * 这条**故意**不再断言 `flex:1` / `min-height:620px`：
+   * 那两个数是"在页眉页脚之间撑高"的写法，而页眉现在是浮在场景之上的固定条、
+   * 页脚已随这次改动删除，舞台不再和任何东西分高度。
+   */
+  it('舞台铺满整个视口（背景画面全屏的落点），不再是居中卡片', () => {
     const scene = bodyOf('.scene');
-    expect(scene, '舞台要吃掉 100vh 减去页眉页脚，底部演出带才贴着界面下边缘').toMatch(/flex:\s*1/);
-    expect(scene, '舞台仍要有最小高度兜底（矮窗口下不塌）').toMatch(/min-height:\s*620px/);
+    expect(scene, '舞台没有铺满视口').toMatch(/inset:\s*0/);
+    expect(scene, '舞台必须是 fixed；relative 会退回到"被 .game 框住"的老样子').toMatch(/position:\s*fixed/);
+    expect(scene, '舞台的层级要和页眉(2) / 首页尾页(5,20) 对得上').toMatch(/z-index:\s*1/);
+    expect(scene, '铺满视口就没有角可圆（圆角会让四角露出页面底色）').not.toMatch(/border-radius/);
+    expect(scene, '页面边缘没有"外面"可以投影').not.toMatch(/box-shadow/);
+    expect(scene, 'px 高度上限会把舞台重新框成一张卡片').not.toMatch(/min-height:\s*\d+px/);
+  });
+
+  /**
+   * jsdom 不算布局，"背景图真的铺满视口"只能在真浏览器里量（fullpage-shots.mjs）。
+   * 这里守的是它的**前提**：背景层与叠加层都以舞台为坐标系（inset:0），
+   * 且舞台自己已经铺满视口 —— 两件事合起来才是"全屏"，少一件就还是卡片。
+   */
+  it('背景层与叠加层以舞台为坐标系（舞台全屏 ⇒ 它们全屏）', () => {
+    for (const sel of ['.scene-background', '.scene-overlay', '.moment-cg', '.walk']) {
+      expect(bodyOf(sel), `${sel} 没有以舞台为坐标系铺满`).toMatch(/inset:\s*0/);
+    }
+    expect(bodyOf('.scene-background'), '背景图铺满时必须是 cover（contain 会露出底色）').toMatch(/background-size:\s*cover/);
+  });
+
+  /**
+   * 页眉：浮在场景之上的固定条。
+   *
+   * 舞台铺满视口之后，页眉不再"住在一个列里"，而是**压在背景画面上**——所以两件事要守住：
+   * 层级要高于舞台（1）、但**必须低于首页/尾页**（5 / 20）：
+   * "玩家看到的第一眼"里不该有 HUD，上一版专门为此把这两页做成全屏层，
+   * 页眉一旦越过去就把那个修复推翻了。
+   */
+  it('页眉浮在场景之上，但必须让位于首页/尾页', () => {
+    const head = bodyOf('header');
+    expect(head, '页眉没有固定在顶部').toMatch(/position:\s*fixed/);
+    const z = /z-index:\s*(\d+)/.exec(head);
+    expect(z, '页眉没有 z-index：会被铺满视口的舞台盖住').toBeTruthy();
+    const headerZ = Number(z![1]);
+    expect(headerZ, '页眉层级必须高于舞台（1）').toBeGreaterThan(1);
+    expect(headerZ, '页眉层级必须低于首页/尾页（5 / 20），否则全屏页上会露出 HUD').toBeLessThan(5);
+    // 深色场景（夜晚 / 雨幕）上深色品牌字会读不出来 —— 页眉要自带一道柔光压边。
+    expect(bodyOf('header::before'), '页眉缺少可读性压边（深色场景上品牌字读不出来）').toMatch(/linear-gradient/);
   });
 
   it('插画卡不超过交付图的原始高度（480×640，放大只会糊）', () => {
@@ -194,7 +258,9 @@ describe('点击安全（全局样式审计）', () => {
     // 所以安全区只需要在**它**身上算一次 —— 从前是分别写在 .dock 与 .dialogue-box 上，
     // 两条 absolute 横栏各自留一次底部边距，叠在一起就是双份留白。
     expect(bodyOf('.stage-bottom'), '.stage-bottom 没有考虑 iPhone 手势条安全区').toMatch(/env\(safe-area-inset-bottom\)/);
-    expect(bodyOf('.game'), '.game 没有考虑安全区内边距').toMatch(/env\(safe-area-inset-top\)/);
+    // 顶部那条归页眉：舞台铺满视口之后 .game 已经没有内边距，而页眉正压在场景最上面，
+    // 横屏时刘海会切到它（左右也一样）。
+    expect(bodyOf('header'), '页眉没有考虑刘海屏安全区').toMatch(/env\(safe-area-inset-top\)/);
   });
 
   it('§9 尊重 prefers-reduced-motion，但倒计时条必须保留动画', () => {
@@ -222,7 +288,7 @@ describe('点击安全（全局样式审计）', () => {
     // （bodyOf 是按**拆分后的单个选择器**匹配的，不能把 '.a,.b' 整串传进去）
     const page = bodyOf('.title-screen');
     expect(page, '首页/尾页没有铺满视口').toMatch(/inset:\s*0/);
-    expect(page, '首页/尾页必须是 fixed，否则会被 .game 的宽度与内边距框住').toMatch(/position:\s*fixed/);
+    expect(page, '首页/尾页必须是 fixed，否则会被全屏舞台（.scene）与页眉框住').toMatch(/position:\s*fixed/);
     const z = /z-index:\s*(\d+)/.exec(page);
     expect(z, '首页/尾页没有 z-index：底部演出带（4）会盖在它们上面吃掉点击').toBeTruthy();
     expect(Number(z![1]), '首页/尾页的层级必须高于底部演出带（4）').toBeGreaterThan(4);

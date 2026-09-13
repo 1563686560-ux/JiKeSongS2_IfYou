@@ -54,7 +54,6 @@ export class UiSystem {
             </div>
           </div>
         </section>
-        <footer><span>用行动说话。</span></footer>
       </div>`;
     this.sceneEl = this.root.querySelector('.scene')!;
     this.contentEl = this.root.querySelector('.content')!;

@@ -1126,6 +1126,70 @@ if (mobileCg) {
 }
 await shoot({ path: `${SHOTS}/15-mobile-dialogue.png` });
 
+/**
+ * 「地点名不被浮在场景之上的页眉吃掉」——舞台铺满视口之后新增的硬验收。
+ *
+ * 舞台改成 fixed;inset:0 之后，页眉从"住在列里的第一行"变成"压在画面上的固定条"
+ * （z-index 2，而地点名在 .scene 里只有 1），于是顶部那片区域**物理上重叠**了：
+ * 地点名一旦落进页眉的白色柔光里，就会被盖成一团灰糊 —— 不是"不好看"，是读不出来。
+ *
+ * 落点由 --chrome-top 给，而它是**按页眉实测高度**定死的（桌面 69px / 窄屏换行后 162px）。
+ * 这是个会悄悄失效的魔数：页眉哪天多一枚 chip 或者换个字号就会变高，
+ * 地点名就又钻回去，而画面上只表现为"左上角有点糊"，没人会想到是布局。
+ * 所以这里在两种视口下真量一次间隙，把魔数钉住。
+ */
+for (const vp of [{ width: 1280, height: 860 }, { width: 390, height: 844 }]) {
+  await page.setViewportSize(vp);
+  await page.waitForTimeout(150);
+  const gap = await page.evaluate(() => {
+    const h = document.querySelector('header')?.getBoundingClientRect();
+    const t = document.querySelector('.location-title')?.getBoundingClientRect();
+    if (!h || !t) return null;
+    return { headerBottom: Math.round(h.bottom), titleTop: Math.round(t.top), titleVisible: !!document.querySelector('.location-title') };
+  });
+  check(
+    gap === null || gap.titleTop >= gap.headerBottom,
+    `${vp.width}px 宽：地点名没有被浮层页眉盖住`,
+    gap ? `页眉底=${gap.headerBottom} 地点名顶=${gap.titleTop}` : '没有地点名可量（跳过）',
+  );
+
+  /**
+   * 「所有背景画面全屏」的正题验收。
+   *
+   * 背景图是 .scene 的子节点、写着 inset:0，所以"它有没有铺满"完全取决于**舞台有没有铺满**。
+   * 从前舞台是 .game 里一张 1100px 的圆角卡片（实测 1056×741，左侧 112px 都是页面底色），
+   * 而铺底对白纸是 fixed 整宽的 —— 两者宽度对不上，纸比背景宽出一截。
+   * 这里逐个量：舞台、背景图、叠加层（有的话）、剧情插画层、校园俯瞰图，
+   * 全部必须和视口四边对齐。少一个都说明"全屏"只做到了一半。
+   */
+  const full = await page.evaluate(() => {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const box = (sel) => {
+      const el = document.querySelector(sel);
+      if (!el) return null;
+      const b = el.getBoundingClientRect();
+      return { t: Math.round(b.top), l: Math.round(b.left), r: Math.round(b.right), b: Math.round(b.bottom) };
+    };
+    const same = (x) => x && x.t === 0 && x.l === 0 && x.r === vw && x.b === vh;
+    return {
+      vw, vh,
+      scene: box('.scene'),
+      bg: box('.scene-background'),
+      overlay: box('.scene-overlay'),
+      cg: box('.moment-cg'),
+      ok: ['.scene', '.scene-background', '.moment-cg'].every((s) => same(box(s))),
+      paperW: box('.dialogue-box') ? box('.dialogue-box').r - box('.dialogue-box').l : null,
+    };
+  });
+  check(full.ok, `${vp.width}px 宽：背景画面（舞台 / 底图 / 插画层）铺满整个视口`, JSON.stringify(full));
+  check(
+    full.paperW === full.vw,
+    `${vp.width}px 宽：铺底对白纸与背景同宽（不再是一半在卡片外）`,
+    `纸宽=${full.paperW} 视口宽=${full.vw}`,
+  );
+}
+
 check(failedRequests.length === 0, '页面没有 404 / 加载失败（单文件构建不该请求任何外部资源）', failedRequests.slice(0, 5).join(' | '));
 check(consoleErrors.length === 0, '真浏览器控制台没有错误', consoleErrors.slice(0, 3).join(' | '));
 

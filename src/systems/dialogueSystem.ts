@@ -70,7 +70,10 @@ export class DialogueSystem {
    * 两个人物分居左右"由立绘行一处决定，台词多长都不会把人挤歪。谁说话谁亮起来这条规则
    * 也只是切 class（`setCastSpeaker`），数值写在 CSS 的 §5.1 注释里。
    *
-   * `data-tone` = 这句的语气色调（灰/白/金），只用来染框左边那条竖线。
+   * `data-tone` = 这句的语气色调（灰/白/金）。**当前没有视觉出口**：它原来染的是框左边
+   * 那条 3px 竖线，2026-09 换成交接包的铺底纸面时，::before 让给了顶沿云雾软边，
+   * 竖线随之取消。属性照写不误 —— 内容侧的 sevenDay 校验要求每句都有 tone，
+   * 它也是"这句话什么情绪"唯一的结构化记录，将来要重新给出口不必回头补数据。
    * 缺省取当前心情档，和从前云朵缺省取心情色是同一个意思。
    */
   private async showInBox(line: DialogueLine, alreadySeen: boolean): Promise<void> {

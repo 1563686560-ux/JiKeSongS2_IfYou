@@ -1,4 +1,4 @@
-﻿// 真浏览器验收：情绪信号图（替代 emoji）+ 人物自动移动转场。
+// 真浏览器验收：情绪信号图（替代 emoji）+ 人物自动移动转场。
 //
 // 为什么非要在真浏览器里做这一段：
 //   · jsdom **不计算布局**，所以"地图有没有铺满舞台""小人是不是正好站在路线上"
@@ -137,6 +137,33 @@ const walkStart = await page.evaluate(() => {
 });
 
 check(!!walkStart.map && !!walkStart.actor, '走路的画面真的出现了（地图 + 小人）');
+
+/**
+ * 转场条上的按钮必须真的点得到 —— 先于"点它"单独量一次。
+ *
+ * 为什么不只靠下面那句 `page.click('[data-walk-act="fast"]')`：
+ * 点不动时 Playwright 会重试到超时（30s）再抛 "… intercepts pointer events"，
+ * 报告里只有一句超时，看不出是**谁**盖住了**谁**。
+ * 2026-09 真的踩过一次：`.walk` 的 z-index(2) 低于底部演出带(4)，
+ * 而演出带在对白框改成铺底 fixed 纸面之后恒定高 28vh（258px），
+ * 正好把屏幕下沿这条转场条整个罩住。那次是另一个改动造成的，
+ * 而这一套（walk-shots）当时没跑，所以没在当场炸出来。
+ * 这里把"命中元素是谁"直接量出来，坏掉时一眼能定位。
+ */
+const fastHit = await page.evaluate(() => {
+  const btn = document.querySelector('[data-walk-act="fast"]');
+  if (!btn) return null;
+  const b = btn.getBoundingClientRect();
+  const top = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+  const chain = [];
+  for (let el = top; el && el !== document.body; el = el.parentElement) {
+    const cs = getComputedStyle(el);
+    chain.push(`${el.tagName.toLowerCase()}.${el.className || '-'}(z=${cs.zIndex},${cs.position})`);
+  }
+  return { ok: top === btn || btn.contains(top), topClass: top ? `${top.tagName.toLowerCase()}.${top.className}` : null, chain };
+});
+check(fastHit?.ok !== false, '转场条的「加速」按钮没有被别的层盖住（实测命中元素）',
+  fastHit ? `命中 ${fastHit.topClass}｜层级链 ${fastHit.chain.join(' < ')}` : '没有加速按钮可量');
 check(walkStart.mapKind === 'webp', '地图用的是正式交付图（校园俯瞰图），不是占位 SVG', walkStart.mapKind);
 check(walkStart.actorKind === 'webp', '小人是真的行走帧图，不是占位 SVG / 空串', walkStart.actorKind);
 check(walkStart.actorNatural.w > 0 && walkStart.actorNatural.h > 0, '行走帧图片解码成功（没有裂图）', JSON.stringify(walkStart.actorNatural));

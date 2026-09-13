@@ -13,6 +13,9 @@ tests/browser/shots/
 tmp-*.log
 tmp-*.txt
 
+# TypeScript 增量编译信息（tsconfig 现在是 noEmit:true，本不该再产生；防御性忽略）
+*.tsbuildinfo
+
 *.local
 .DS_Store
 Thumbs.db
@@ -33,3 +36,7 @@ map-campus-overview*/
 # 它那两张天空图已经由 scripts/import-title-art.py 落成 art/title.bg.dim.webp /
 # title.bg.gentle.webp（那两张**必须入库**，否则 Pages 上部署出来的首页会退回占位色块）。
 title-screen-handoff/
+
+# 对白框预览包（2.2 MB，其中 2.1 MB 是一张课堂底图）：同样是交接材料，不是构建输入。
+# 它的对白框 CSS 已经落进 src/styles/base.css，底图则由 scripts/import-*.py 转码进 art/。
+dialogue-box-preview-package/
