@@ -192,10 +192,16 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;fl
    132×176 与交付规格 400×533 完全同比例（0.75），所以 cover 不会裁掉任何东西。 */
 .custom-options .choice.has-art{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 12px}
 .choice-art{width:132px;height:176px;object-fit:cover;border-radius:12px;pointer-events:none;display:block}
-.ending{position:fixed;inset:0;z-index:20;background:#0006;display:flex;align-items:center;justify-content:center;padding:20px}
-.ending-card{background:#fffaf2;border-radius:24px;padding:32px;max-width:480px;width:100%;text-align:center;box-shadow:0 20px 60px #0004;display:flex;flex-direction:column;gap:18px}
-.ending-card h1{font-size:30px;letter-spacing:.2em;margin:0}.ending-stats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;font-size:13px;opacity:.8}.ending-stats span{padding:5px 10px;border-radius:999px;background:#e8dfd1}
-.bottle-received{font-size:13px;color:#7a6b4f;font-style:italic}.bottle{display:flex;gap:8px}.bottle input{flex:1;border:1px solid #ddd;border-radius:12px;padding:10px 14px;font-family:inherit}.bottle-send,.restart-btn{border:0;border-radius:12px;padding:10px 16px;cursor:pointer;font-family:inherit;background:#c79a3a;color:#fff}.restart-btn{background:#8fa7c9}
+/* 结局结算浮层的位置 / 皮肤见下面的「全屏页」一节（.title-screen 与 .ending 共用）。
+   这里只留"卡片内部"的内容排版：结算数字、七日云朵、留言瓶。 */
+.ending-stats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;font-size:13px;color:var(--page-chip-fg)}
+.ending-stats span{padding:5px 12px;border-radius:999px;background:var(--page-chip-bg)}
+.bottle-received{font-size:13px;color:var(--page-fg-soft);font-style:italic}
+.bottle{display:flex;gap:8px;width:min(100%,420px)}
+.bottle input{flex:1;min-width:0;border:1px solid #ffffffcc;border-radius:999px;padding:10px 16px;font-family:inherit;font-size:13px;background:#fffaf2f2;color:#514951}
+.bottle input::placeholder{color:#8b8290}
+.bottle-send{border:0;border-radius:999px;padding:10px 18px;cursor:pointer;font-family:inherit;font-size:13px;background:#c79a3a;color:#fff;white-space:nowrap}
+.bottle-send:hover{background:#b98a2c}
 footer{display:flex;justify-content:center;font-size:12px;opacity:.55}
 .shake{animation:shake .42s}
 @keyframes boxOut{to{opacity:0;transform:translateY(-14px)}}
@@ -203,13 +209,71 @@ footer{display:flex;justify-content:center;font-size:12px;opacity:.55}
 @keyframes pulse{50%{transform:scale(1.06)}}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 @keyframes toastIn{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
-.title-screen,.gallery{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;z-index:5;text-align:center}
-.title-screen h1{font-size:44px;letter-spacing:.3em;margin:0}.title-screen .subtitle{font-size:12px;letter-spacing:.35em;opacity:.5;margin:0}.title-screen .collect{font-size:14px;color:#c79a3a}
-.title-actions,.ending-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+/* ── 全屏页：首页与尾页（标题页交接包 title-screen-handoff/）──────────────────
+   交接包给的是一整页：铺满视口的天空 + 居中的中英标题 + 文字按钮（.btn-text）。
+   本作从前这两页都住在舞台里（标题页在 .content，结局页是压暗底上的一张白卡），
+   于是"玩家看到的第一眼"和"最后一眼"都被包在一个圆角舞台里，四周还露着页眉/页脚/HUD。
+   现在它们是挂在 .game 下的 fixed 全屏层（z-index 5 / 20，都高于底部演出带 4）。
+
+   两页共用一套皮肤，只在 data-mood 上分两档 —— 这一档**不是装饰**：
+     dim    = 雨云压着的天（bg_title_dim）      → 深底，文字走奶油色
+     gentle = 晒得暖的天（bg_title_gentle）     → 亮底，文字必须走墨色
+   亮天空上写奶油色字等于没写，所以前景色是跟着心情走的变量。
+   `--page-bg` 由 UiSystem 按内容层给的 AssetId 写进内联样式；没有图时用这里那条天空渐变兜底
+   （注意：没图时**不要**写 `--page-bg:''`，那会让 var() 的兜底失效、整页变成没有背景）。 */
+.title-screen,.ending{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:"Songti SC","STSong","Noto Serif SC","Source Han Serif SC","SimSun",serif;background-image:var(--page-bg,linear-gradient(180deg,#596b79 0%,#8f8f88 48%,#d6bd91 100%));background-size:cover;background-position:center;background-repeat:no-repeat}
+.ending{z-index:20}
+/* 顶部那道暖光 + 上下压边（交接包的 ::before）：天空图自己已经把亮度定死了，
+   这一层只负责让文字在图的**任何局部**上都有对比度，所以它按心情换 --page-veil。 */
+.title-screen::before,.ending::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 80% 35% at 50% 18%,rgba(255,245,220,.25),transparent 70%),var(--page-veil)}
+/* 极淡的纸纹噪点（交接包的 ::after）：天空是水彩，加一层噪点才不像"一张被放大的图" */
+.title-screen::after,.ending::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.055;mix-blend-mode:soft-light;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+.title-screen[data-mood="dim"],.ending[data-mood="dim"]{--page-fg:#fdf8ec;--page-fg-soft:#e4dac4;--page-rule:rgba(253,248,236,.5);--page-glow:rgba(255,238,193,.6);--page-gold:#f3d995;--page-veil:linear-gradient(180deg,rgba(18,28,40,.34),rgba(18,28,40,.06) 52%,rgba(44,35,27,.28));--page-chip-bg:rgba(20,29,44,.4);--page-chip-fg:#f2ebdc;--page-shadow:0 2px 16px rgba(16,22,32,.6)}
+.title-screen[data-mood="gentle"],.ending[data-mood="gentle"]{--page-fg:#39404c;--page-fg-soft:#5b6472;--page-rule:rgba(57,64,76,.42);--page-glow:rgba(38,46,62,.4);--page-gold:#a8781c;--page-veil:linear-gradient(180deg,rgba(255,250,242,.5),rgba(255,250,242,.14) 52%,rgba(255,247,232,.54));--page-chip-bg:rgba(255,250,242,.68);--page-chip-fg:#4a4650;--page-shadow:0 1px 14px rgba(255,255,255,.6)}
+
+.page-en{margin:0;font-family:"Baskerville","Palatino Linotype",Georgia,"Times New Roman",serif;font-style:italic;font-weight:500;letter-spacing:.1em;color:var(--page-fg);text-shadow:var(--page-shadow);font-size:clamp(40px,8vw,84px)}
+.page-cn{margin:14px 0 0;font-weight:400;letter-spacing:.3em;line-height:1.35;color:var(--page-fg-soft);text-shadow:var(--page-shadow);font-size:clamp(21px,3.2vw,32px)}
+/* 首页的两块：交接包把标题放在偏上、动作放在偏下（各自 absolute，中间的留白就是天空）。
+   它们不是"舞台里的浮层"，而是这一页的构图，所以用 absolute 而不是 flex 居中。 */
+.title-screen__heading{position:absolute;top:23vh;left:50%;transform:translateX(-50%);width:min(90vw,760px)}
+.title-screen__actions{position:absolute;bottom:26vh;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;width:min(90vw,520px)}
+.title-screen .collect{margin:0 0 12px;font-size:13px;letter-spacing:.24em;color:var(--page-fg-soft);text-shadow:var(--page-shadow)}
+/* 尾页的内容比首页多（结算数字 / 七日云朵 / 留言瓶 / 三个出口），所以它走**流式**居中，
+   而不是首页那套 absolute 构图；矮屏（横过来看）上靠 overflow 滚动，不裁内容。 */
+.ending-card{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:16px;width:min(94vw,720px);max-height:100%;overflow-y:auto;padding:4px}
+.ending-heading{display:flex;flex-direction:column;align-items:center}
+/* 尾页的字号层级和首页**故意相反**：首页的主角是那句 "If you"（交接包的设计），
+   尾页的主角是结局名本身（晴空 / 生长 / 雨过）—— 英文那句在这里只是同一套皮肤的落款，
+   放大了会把结局名压成一个注脚。 */
+.ending .page-en{font-size:clamp(19px,3.4vw,30px);letter-spacing:.16em;color:var(--page-fg-soft)}
+.ending-card h1{margin:10px 0 0;font-size:clamp(30px,5.4vw,50px);font-weight:400;letter-spacing:.3em;text-indent:.3em;color:var(--page-fg);text-shadow:var(--page-shadow)}
+.ending-actions{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:2px}
+
+/* 文字按钮：交接包唯一的按钮形态（一条会展开的下划线 + 悬停微亮）。
+   它没有底板，所以"能不能点"完全靠这条线和 hover —— 焦点框也必须画出来（键盘用户）。
+   悬停那道光按心情给：深底上是一圈暖光，亮底上是一圈**更重的墨影**
+   （亮天空上打白光等于没打，等于这颗按钮"悬停没反应"）。 */
+.btn-text{appearance:none;background:none;border:none;cursor:pointer;padding:9px 6px;font-family:inherit;font-size:clamp(17px,2.5vw,22px);letter-spacing:.16em;color:var(--page-fg, #fff);position:relative;text-shadow:var(--page-shadow, none);transition:transform .15s ease,opacity .15s ease}
+.btn-text::after{content:"";position:absolute;left:0;right:0;bottom:2px;height:1px;background:var(--page-rule, #fff8);transform:scaleX(.6);transform-origin:center;transition:transform .2s ease,background .2s ease}
+.btn-text:hover{transform:translateY(-2px);text-shadow:0 0 15px var(--page-glow, transparent),var(--page-shadow, none)}
+.btn-text:hover::after{transform:scaleX(1);background:#d9a750}
+.btn-text:active{transform:translateY(0);opacity:.75}
+.btn-text:focus-visible{outline:2px solid #d9a750;outline-offset:6px;border-radius:2px}
+
+.gallery{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;z-index:5;text-align:center}
 .btn{border:0;border-radius:14px;padding:13px 26px;font-family:inherit;font-size:16px;cursor:pointer;background:#8fa7c9;color:#fff;box-shadow:0 6px 16px #403c4426}.btn.ghost{background:transparent;color:#6b6470;box-shadow:none;border:1px solid #d8cfc2}
-.ghost-btn{border:1px solid #d8cfc2;background:transparent;border-radius:12px;padding:9px 14px;cursor:pointer;font-family:inherit;color:#6b6470}
 .gallery h2{letter-spacing:.2em;margin:0}.gallery-list{display:flex;flex-direction:column;gap:10px;max-height:52vh;overflow:auto;padding:4px;width:min(520px,90%)}.gallery-item{background:#fff;border-radius:999px;padding:10px 18px;box-shadow:0 4px 12px #403c4420}.gallery .empty{opacity:.6}
-.history-row{margin:6px 0}.history-label{font-size:12px;opacity:.6;margin-bottom:8px}.history-clouds{display:flex;gap:10px;justify-content:center}.history-cloud{width:22px;height:16px;border-radius:999px;display:inline-block}.history-cloud.dark{background:#555864}.history-cloud.white{background:#fff;border:1px solid #ddd}.history-cloud.gold{background:#f3d995}
+/* 七日云朵（结局页）：七天各一朵，颜色 = 那天的云色。
+   三档底色原先都按"压暗遮罩上的白卡"配的，现在它们直接坐在天上 ——
+   而"白云"落在亮天上就是一朵看不见的白（真浏览器截图里 2–7 号只剩一圈虚边）。
+   所以每朵都套一道**深色细环**：环是给所有天空都兜底的那一层，底色照旧表达云色。 */
+.history-row{margin:2px 0}
+.history-label{font-size:12px;letter-spacing:.2em;color:var(--page-fg-soft);margin-bottom:8px;text-shadow:var(--page-shadow)}
+.history-clouds{display:flex;gap:10px;justify-content:center}
+.history-cloud{width:22px;height:16px;border-radius:999px;display:inline-block;box-shadow:0 0 0 1px rgba(62,70,86,.5),0 2px 5px rgba(16,22,32,.35)}
+.history-cloud.dark{background:#4b4f5c;box-shadow:0 0 0 1px rgba(236,240,248,.35),0 2px 5px rgba(16,22,32,.35)}
+.history-cloud.white{background:#fffdf6}
+.history-cloud.gold{background:#f3d995}
 .scene[data-theme=title]{background:radial-gradient(circle at 50% 30%,#fffaf2,#e9dfd3 80%)}
 .custom input.slider{width:min(520px,86%);accent-color:#8fa7c9}
 .slider-value{font-size:26px;font-weight:700;letter-spacing:.08em;color:#5b5660}
@@ -223,9 +287,10 @@ footer{display:flex;justify-content:center;font-size:12px;opacity:.55}
 @keyframes countdown{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 .gallery-group{display:flex;flex-direction:column;gap:8px;width:min(520px,90%)}
 .gallery-group-title{font-size:12px;letter-spacing:.2em;opacity:.6;text-align:left}
-.ending-stats .stars{color:#d9a53c;letter-spacing:.12em}
+.ending-stats .stars{color:var(--page-gold,#d9a53c);letter-spacing:.12em;font-size:15px}
+/* 结局页的七日云朵：日期标签压在天空上，靠 --page-fg-soft + 投影读出来 */
+.history-day{font-size:10px;color:var(--page-fg-soft);text-shadow:var(--page-shadow)}
 .history-cell{display:flex;flex-direction:column;align-items:center;gap:4px}
-.history-day{font-size:10px;opacity:.5}
 .anim-layer{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden}
 .anim-hand i{position:absolute;top:32%;width:60px;height:92px;border-radius:46% 46% 42% 42%;background:#f0bf99e0;box-shadow:0 8px 20px #00000014;animation:handIn .9s ease-out}
 .anim-hand i:first-child{left:calc(50% - 104px)}
@@ -255,9 +320,11 @@ footer{display:flex;justify-content:center;font-size:12px;opacity:.55}
 
 /* iPhone 安全区：刘海屏顶部与手势条底部会压住 HUD 和底部演出带。
    （.game 的内边距已在上面按 env() 处理；底部这条由 .stage-bottom 自己算 ——
-    立绘行 / 台词 / 选项都住在它里面，安全区只需要在一处生效，多了反而叠成双份留白。） */
+    立绘行 / 台词 / 选项都住在它里面，安全区只需要在一处生效，多了反而叠成双份留白。）
+   全屏页（标题页 / 结局页）是 fixed 铺满视口的，不吃 .game 的内边距，
+   所以四边都得自己算一遍：横屏时刘海会切掉标题的左右，竖屏时手势条会压住最下面那颗按钮。 */
 .stage-bottom{padding-bottom:calc(18px + env(safe-area-inset-bottom))}
-.ending{padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
+.title-screen,.ending{padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left))}
 
 /* 开局问卷（现在只剩"那时候的TA，是——"一题）。
    整块内容贴底排：人物图与问题都在界面下部 —— 和游戏里的文字同一条视觉基线，
@@ -359,4 +426,25 @@ footer{display:flex;justify-content:center;font-size:12px;opacity:.55}
 .choice-art{width:104px;height:139px}
 .custom{gap:16px;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
 .custom-prompt{font-size:18px}
+/* 全屏页在窄屏上：首页那套 23vh / 26vh 的构图在竖屏手机上会把两块推得太远
+   （844px 高的手机上标题落在 194px、按钮落在 580px，中间空一大片），
+   所以窄屏收成"上五分之一放标题、下五分之一放按钮"，其余交给 clamp 压字号。 */
+.title-screen__heading{top:20vh}
+.title-screen__actions{bottom:18vh}
+.ending-card{gap:12px}
+.history-clouds{gap:7px}
+.history-cloud{width:18px;height:13px}
+.bottle-send{padding:10px 14px}
+}
+
+/* 矮视口（横屏手机、小窗）：绝对的 23vh/26vh 在这里会把标题和按钮挤到重叠，
+   所以两块都收到 9vh，并把英文标题按视口高度压下来（它一行有二十来个字符）。
+   放在窄屏那条之后：两者同时命中时（横屏手机）以这条为准。 */
+@media(max-height:560px){
+  .title-screen__heading{top:9vh}
+  .title-screen__actions{bottom:9vh}
+  .page-en{font-size:clamp(28px,6.4vh,56px)}
+  .ending .page-en{font-size:clamp(16px,3.4vh,26px)}
+  .ending-card h1{font-size:clamp(26px,7vh,44px)}
+  .ending-card{gap:10px}
 }

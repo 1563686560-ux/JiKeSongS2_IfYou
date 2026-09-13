@@ -1,4 +1,4 @@
-import type { MoodTier, CustomizationQuestion, CustomizationOption } from '../types/content';
+import type { MoodTier, CustomizationQuestion, CustomizationOption, PageSky } from '../types/content';
 import type { GameState } from '../core/runtime';
 import { esc, formatTime, groupCollectibles } from '../core/util';
 import { SPEED_LABEL, type DialoguePrefs } from './dialoguePrefs';
@@ -332,24 +332,51 @@ export class UiSystem {
     el.remove();
   }
 
-  title(count: number, canResume: boolean): Promise<'start' | 'resume' | 'gallery'> {
+  /**
+   * 首页（标题页）—— **全屏页**，铺满整个视口。
+   *
+   * 设计来自标题页交接包（title-screen-handoff/）：一整页天空 + 居中的中英标题 + 文字按钮。
+   * 从前它住在 `.content` 里（舞台那块圆角卡片内），于是"玩家看到的第一眼"被夹在页眉、
+   * HUD 和页脚中间，两侧还露着舞台边缘。交接包给的是一整页，所以它现在挂在 `.game` 下的
+   * `position:fixed` 层上（和 `.ending` 同一类，见 base.css 的「全屏页」一节）。
+   *
+   * 挂在 `.game` 上有个必须记住的后果：**离开标题页时要自己把这一层摘掉**（见下面 finish()）。
+   * `.content` 会被下一次渲染整个替换掉，而 `.game` 上的兄弟节点不会 —— 漏了这句，
+   * 玩家点完「开始守护」之后会顶着一整页天空玩。
+   *
+   * `bg` 是内容层给的两张天空底图（AssetId 已由引擎解析成 URL）。
+   * 用哪一张按"玩过没有"选：第一次来是压着雨云的天（dim），已经有存档就换成晒得暖的天（gentle）。
+   * 没给底图时**不设** `--page-bg`（不能设成空串：那会让 var() 的兜底失效），
+   * 页面退回 CSS 里那条天空渐变。
+   */
+  title(count: number, canResume: boolean, bg: Partial<Record<PageSky, string>> = {}): Promise<'start' | 'resume' | 'gallery'> {
     this.sceneEl.dataset.theme = 'title';
     this.sceneEl.style.filter = '';
     this.contentEl.innerHTML = '';
     this.resetLayers();
-    this.contentEl.innerHTML = `<div class="title-screen">
-      <h1>如果有你</h1>
-      <p class="subtitle">If Only You Were There</p>
-      <p class="collect">☁ 已收下 ${count} 句心动</p>
-      <div class="title-actions">
-        ${canResume ? '<button class="btn" data-act="resume">继续守护</button>' : ''}
-        <button class="btn" data-act="start">开始守护</button>
-        <button class="btn ghost" data-act="gallery">云朵图鉴</button>
+    const sky: PageSky = canResume ? 'gentle' : 'dim';
+    const el = document.createElement('div');
+    el.className = 'title-screen';
+    el.dataset.mood = sky;
+    if (bg[sky]) el.style.setProperty('--page-bg', `url('${bg[sky]}')`);
+    el.innerHTML = `
+      <div class="title-screen__heading">
+        <p class="page-en">If you</p>
+        <h1 class="page-cn">如果有你</h1>
       </div>
-    </div>`;
+      <div class="title-screen__actions">
+        <p class="collect">☁ 已收下 ${count} 句心动</p>
+        ${canResume ? '<button class="btn-text" data-act="resume">继续守护</button>' : ''}
+        <button class="btn-text" data-act="start">开始守护</button>
+        <button class="btn-text" data-act="gallery">云朵图鉴</button>
+      </div>`;
+    this.root.querySelector('.game')!.appendChild(el);
     return new Promise((resolve) => {
-      this.contentEl.querySelectorAll<HTMLButtonElement>('[data-act]').forEach((btn) => {
-        btn.onclick = () => resolve(btn.dataset.act as 'start' | 'resume' | 'gallery');
+      el.querySelectorAll<HTMLButtonElement>('[data-act]').forEach((btn) => {
+        btn.onclick = () => {
+          el.remove();
+          resolve(btn.dataset.act as 'start' | 'resume' | 'gallery');
+        };
       });
     });
   }
@@ -438,9 +465,20 @@ export class UiSystem {
     });
   }
 
+  /**
+   * 尾页（结局结算页）—— 同样是**全屏页**，和标题页共用一套皮肤（见 base.css 的「全屏页」一节）。
+   *
+   * 从前它是"压暗的遮罩 + 一张白色圆角卡"：天空被盖住，一切挤在 480px 宽的卡里。
+   * 现在把交接包那片天铺满整个视口，结算内容直接落在天上 —— 标题页的第一眼与结局页的
+   * 最后一眼因此是同一个界面，而不是"进游戏前是一页、出来后是一张表单"。
+   *
+   * `sky` 由内容层定（EndingConfig.sky）：守护住了是晒得暖的天，没守住的停在雨刚过的天。
+   * 亮底上不能用奶油色文字，所以文字色跟着 `data-mood` 走（见 CSS）。
+   */
   showEndingPanel(opts: {
     title: string; mood: number; bond: number; total: number; miss: number; collected: number;
     stars: number; historyLabel: string;
+    sky: PageSky; bg: Partial<Record<PageSky, string>>;
     moodHistory: { label: string; cloud: 'dark' | 'white' | 'gold' }[];
     prevMessage?: string; onBottle: (text: string) => void; onRestart: () => void; onGallery: () => void; onTitle: () => void;
   }): void {
@@ -455,11 +493,17 @@ export class UiSystem {
     this.sceneEl.querySelector('.countdown')?.remove();
     let overlay = game.querySelector<HTMLElement>('.ending');
     if (!overlay) { overlay = document.createElement('div'); overlay.className = 'ending'; game.appendChild(overlay); }
+    overlay.dataset.mood = opts.sky;
+    if (opts.bg[opts.sky]) overlay.style.setProperty('--page-bg', `url('${opts.bg[opts.sky]}')`);
+    else overlay.style.removeProperty('--page-bg');
     const cap = (label: string) => /^第(\d+)天/.exec(label)?.[1] ?? label;
     const history = opts.moodHistory.map((h) =>
       `<span class="history-cell"><span class="history-cloud ${h.cloud}" title="${esc(h.label)}"></span><span class="history-day">${esc(cap(h.label))}</span></span>`).join('');
     overlay.innerHTML = `<div class="ending-card">
-      <h1>${esc(opts.title)}</h1>
+      <div class="ending-heading">
+        <p class="page-en">If only you were there</p>
+        <h1>${esc(opts.title)}</h1>
+      </div>
       <div class="ending-stats">
         <span class="stars" title="守护星级">${'★'.repeat(opts.stars)}${'☆'.repeat(Math.max(0, 5 - opts.stars))}</span>
         <span>心情 ${opts.mood}</span><span>羁绊 ${opts.bond}</span><span>守护 ${opts.total} 次</span><span>错过 ${opts.miss} 次</span><span>☁ 图鉴 ${opts.collected} 句</span>
@@ -471,9 +515,9 @@ export class UiSystem {
         <button class="bottle-send">投进海里</button>
       </div>
       <div class="ending-actions">
-        <button class="restart-btn">再守护一次</button>
-        <button class="ghost-btn" data-gallery>云朵图鉴</button>
-        <button class="ghost-btn" data-title>回到标题</button>
+        <button class="btn-text" data-restart>再守护一次</button>
+        <button class="btn-text" data-gallery>云朵图鉴</button>
+        <button class="btn-text" data-title>回到标题</button>
       </div>
     </div>`;
     overlay.querySelector<HTMLButtonElement>('.bottle-send')!.onclick = () => {
@@ -481,7 +525,9 @@ export class UiSystem {
       const text = input.value.trim();
       if (text) { opts.onBottle(text); input.value = ''; opts.onRestart(); }
     };
-    overlay.querySelector<HTMLButtonElement>('.restart-btn')!.onclick = () => opts.onRestart();
+    // 三个出口都用 data-* 锚点（和标题页的 data-act 同一套写法）：结局页的按钮样式是
+    // `.btn-text` 共用的，再给某颗按钮挂一个语义 class 只会多出一处"这名字还有人用吗"。
+    overlay.querySelector<HTMLButtonElement>('[data-restart]')!.onclick = () => opts.onRestart();
     overlay.querySelector<HTMLButtonElement>('[data-gallery]')!.onclick = () => opts.onGallery();
     overlay.querySelector<HTMLButtonElement>('[data-title]')!.onclick = () => opts.onTitle();
   }

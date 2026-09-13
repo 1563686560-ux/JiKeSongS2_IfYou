@@ -23,11 +23,15 @@ const endingScene = (
 
 // B（玩法策划）：4 个结局，条件与文案取自《剧情脚本 V1.3》第三章。
 // 判定优先级见 flow.ts 的 ending-pick 节点：隐藏 → 晴空 → 生长 → 雨过。
+//
+// `sky` = 结局页（全屏结算页）背后那片天，取交接包给的两个心情变体之一（见 EndingConfig.sky）。
+// 四个都由结局作者显式写出来，不靠引擎猜：守护住了就是亮起来的天，没守住的停在"雨刚过"的天。
 export const endings: EndingConfig[] = [
   {
     id: 'clumsy',
     name: '笨拙的守护',
     condition: hiddenEndingCondition,
+    sky: 'gentle',
     scene: endingScene('endingSunny', '笨拙的守护', 'dusk', 'lookUp'),
     lines: [
       { id: 'h1', text: '你总是用同一种方式，笨笨地护着我。', tone: 'gold', collectible: true },
@@ -38,6 +42,7 @@ export const endings: EndingConfig[] = [
     id: 'sunny',
     name: '晴空',
     condition: sunnyCondition,
+    sky: 'gentle',
     scene: endingScene('endingSunny', '晴空', 'dusk', 'lookUp'),
     lines: [
       { id: 'e1', text: '故事里的夏天，有人替你挡住了一些雨。', tone: 'gold', collectible: true },
@@ -48,6 +53,7 @@ export const endings: EndingConfig[] = [
     id: 'grow',
     name: '生长',
     condition: growCondition,
+    sky: 'gentle',
     scene: endingScene('endingSunny', '生长', 'day', 'lookUp'),
     lines: [
       { id: 'e4', text: '辛苦的日子没有奇迹。', tone: 'white', collectible: true },
@@ -58,6 +64,8 @@ export const endings: EndingConfig[] = [
     id: 'rain',
     name: '雨过',
     condition: { kind: 'always' },
+    // "有些雨，没能挡住。但雨，总会停的。" —— 停在雨刚过的那片天，不是晴空
+    sky: 'dim',
     scene: endingScene('endingRain', '雨过', 'rain', 'stand'),
     lines: [
       { text: '有些雨，没能挡住。', tone: 'dark' },

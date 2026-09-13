@@ -229,6 +229,38 @@ describe('终章与结局页的背景（D7 交付）', () => {
   });
 });
 
+/**
+ * 首页 / 尾页的**全屏天空底图**（标题页交接包 title-screen-handoff 的两张心情图）。
+ *
+ * 这两张和上面那些 `.scene-background` 不是一回事：它们铺满整个视口（见 base.css 的
+ * "全屏页"一节），走 `settings.pageSky` 这条页面级的路。但"交了没有、名字对不对"
+ * 必须和别的美术资源一样在构建期就查出来 —— 缺图时页面上只剩一条 CSS 渐变兜底，
+ * 画面上不会有任何提示，属于"没人会发现"的那种回归。
+ */
+describe('首页 / 尾页的全屏天空底图（交接包）', () => {
+  const pageSky = config.settings?.pageSky;
+
+  it('内容层登记了两档心情，且都指向已登记、已交付的 AssetId', () => {
+    expect(pageSky, 'settings.pageSky 没登记，标题页与结局页会退回 CSS 渐变').toBeTruthy();
+    for (const mood of ['dim', 'gentle'] as const) {
+      const id = pageSky![mood];
+      expect(images[id], `pageSky.${mood} 指向了没登记的 ${id}`).toBeTruthy();
+      expect(images[id].placeholder, `${id} 还是占位图`).not.toBe(true);
+      expect(delivered.has(id), `${id} 没有交付文件`).toBe(true);
+      expect(`${spec.assets[id as keyof typeof spec.assets].width}×${spec.assets[id as keyof typeof spec.assets].height}`, `${id} 不是整屏舞台基准`).toBe('1280×720');
+    }
+  });
+
+  it('四个结局都写了 sky，且只用登记过的那两档', () => {
+    for (const e of config.endings) {
+      expect(e.sky, `${e.id} 没写 sky（引擎会按 scene.theme 兜底，但结局页那片天应当由结局作者决定）`).toBeTruthy();
+      expect(['dim', 'gentle'], `${e.id} 的 sky 是 ${e.sky}`).toContain(e.sky);
+    }
+    // 两档都要有人用：只用一个的话，另一张图就是"交了但永远不会上屏"
+    expect(new Set(config.endings.map((e) => e.sky))).toEqual(new Set(['dim', 'gentle']));
+  });
+});
+
 describe('地图坐标基准不许和美术规格各说各话', () => {  it('MapConfig 的 baseWidth/baseHeight 就是该地点背景图的交付尺寸', () => {
     const assets = (spec as { assets: Record<string, { width: number; height: number }> }).assets;
     for (const map of Object.values(config.maps)) {

@@ -1,0 +1,67 @@
+# 把单文件构建产物（dist/index.html）自动发布到 GitHub Pages。
+#
+# 背景：本项目用 vite-plugin-singlefile 构建，整个游戏（含全部美术）压成一个 index.html，
+# 所以"部署"本质上只是把那个文件放到一个静态站点根目录上 —— Pages 天然适合。
+# dist/ 在 .gitignore 里（构建产物不入库），所以不能靠提交 dist 来发布，
+# 这里改成：每次 push 到 main，由 CI 现场 `npm run build` 再把产物上传到 Pages。
+#
+# 启用方式（只需一次）：
+#   GitHub 仓库 → Settings → Pages → Build and deployment → Source 选 "GitHub Actions"
+# 之后每次 push main 都会自动重新部署，网址固定为：
+#   https://<用户名>.github.io/<仓库名>/
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # 允许在 Actions 页面手动点一次重新部署
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一条分支上只保留最新一次部署，避免并发上传互相覆盖
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # 构建只需要 typescript/vite，不需要真浏览器。
+      # @playwright/test 是 devDependency（CI 里会被装上），跳过它的浏览器下载能省 1~2 分钟。
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # 必须用普通 npm ci（不能加 --ignore-scripts）：
+      # esbuild 靠 postinstall 落平台二进制，跳过脚本会让 `vite build` 直接失败。
+      - name: 安装依赖
+        run: npm ci
+
+      # 跑的就是 package.json 里的 build：art:check（校验 116 张美术是否齐）→ tsc --noEmit → vite build
+      - name: 构建单文件 HTML
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -95,6 +95,16 @@ export const ASSET_IDS = {
   /** 干预成功的两个特效素材（L2 短动画） */
   vfxGoldenZipper: 'vfx.goldenZipper',
   vfxProtectiveHand: 'vfx.protectiveHand',
+  /**
+   * 标题页 / 结局页的**全屏天空底图**（标题页交接包 title-screen-handoff）。
+   *
+   * 两个心情变体：`dim`（雨云压着的天，开场）/ `gentle`（晒得暖的天，收尾）。
+   * 它们不是"舞台里的背景"，而是**铺满视口**的整页底图 —— 标题页与结局页都是全屏页
+   * （`position:fixed;inset:0`，见 base.css），所以由页面的 CSS 变量 `--page-bg` 挂着，
+   * 而不是走 `.scene-background` 那条舞台内的路。
+   */
+  titleBgDim: 'title.bg.dim',
+  titleBgGentle: 'title.bg.gentle',
 } as const;
 
 /**
@@ -236,6 +246,11 @@ ENTRIES.push(
   { id: ASSET_IDS.memoryEcho, placeholderLabel: '记忆回响｜占位背景', placeholderBg: '#0d1018', kind: 'svg', layer: 'background' },
   // 校园俯瞰地图：整屏背景（人物自动移动转场期间铺满）
   { id: ASSET_IDS.campusMap, placeholderLabel: '校园地图｜占位背景', placeholderBg: '#c3d3c0', kind: 'svg', layer: 'background' },
+  // 标题页 / 结局页的全屏天空底图（交接包 title-screen-handoff，见 ASSET_IDS 的说明）。
+  // 和其它环境图一样按 layer:'background' 登记：缺图时退成一张写着中文名的占位色块 ——
+  // 这两页是玩家看到的第一眼与最后一眼，缺图必须一眼看得出来，不能静默变成一块空渐变。
+  { id: ASSET_IDS.titleBgDim, placeholderLabel: '标题页背景·阴沉｜占位', placeholderBg: '#596b79', kind: 'webp', layer: 'background' },
+  { id: ASSET_IDS.titleBgGentle, placeholderLabel: '标题页背景·温柔｜占位', placeholderBg: '#cfdcea', kind: 'webp', layer: 'background' },
 );
 
 /**

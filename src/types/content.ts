@@ -167,7 +167,31 @@ export type Effect =
   | { kind: 'shake'; strength?: number }
   | { kind: 'set'; set: Record<string, Scalar> };
 
-export interface EndingConfig { id: string; name: string; condition: Condition; scene: SceneConfig; lines: DialogueLine[] }
+/**
+ * 全屏页（标题页 / 结局页）背后那片天的两种心情。
+ *
+ * 名字直接沿用标题页交接包（title-screen-handoff）的两个变体：
+ * `dim` = 雨云压着的那张 `bg_title_dim.png`，`gentle` = 晒得暖的那张 `bg_title_gentle.png`
+ * —— 交接包的 `TitleScreen.setMood(mood)` 切的就是这两张，所以这里不另起一套词汇。
+ * 皮肤（文字色 / 压暗还是提亮）由 base.css 按 `data-mood` 给，见"全屏页"那一节。
+ */
+export type PageSky = 'dim' | 'gentle';
+
+export interface EndingConfig {
+  id: string;
+  name: string;
+  condition: Condition;
+  scene: SceneConfig;
+  lines: DialogueLine[];
+  /**
+   * 结局页（全屏结算页）背后那片天的心情。
+   *
+   * **为什么不是引擎按 scene.theme 推**：theme 说的是舞台底图的时相（day/dusk/rain），
+   * 而"这个结局该收在哪一片天下"是结局作者的决定 —— 雨过未必要停在阴天。
+   * 缺省（没写时）由 Engine.runEnding 退到 `scene.theme === 'rain' ? 'dim' : 'gentle'`。
+   */
+  sky?: PageSky;
+}
 
 // 开局定制：支持三选一按钮 / 时间滑杆 / 配色选择
 export interface CustomizationOption { label: string; value: string; setFlags?: Record<string, Scalar>; image?: AssetId }
@@ -238,6 +262,14 @@ export interface GameConfig {
     walkMs?: number;
     /** 覆盖 `CampusConfig.speed`（归一化坐标 / 秒）。只给调参和测试用 */
     walkSpeed?: number;
+    /**
+     * 标题页 / 结局页的**全屏天空底图**：心情 → AssetId（见 PageSky）。
+     *
+     * 这两页铺满整个视口（`position:fixed;inset:0`，见 base.css 的"全屏页"一节），
+     * 所以它们的底图是**页面级**资源，不走 `.scene-background` 那条"舞台内的环境层"。
+     * 缺省时不设 `--page-bg`，页面退回 CSS 里那条天空渐变 —— 少两张图不会变成一块空白。
+     */
+    pageSky?: { dim: AssetId; gentle: AssetId };
   };
   /**
    * 校园世界数据（人物自动移动转场用）。缺省时转场自动降级成原来的"地点名淡入淡出"，

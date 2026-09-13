@@ -15,6 +15,8 @@ art/
 ├─ overlay.classroom.night.png    1280 × 720   （教室·夜间光，要透明通道）
 ├─ overlay.rain.png               1280 × 720   （雨幕，要透明通道）
 ├─ ending.card.jpg                1280 × 720
+├─ title.bg.dim.webp              1280 × 720    （首页 / 尾页的全屏天空·阴沉；见下"全屏页"）
+├─ title.bg.gentle.webp           1280 × 720    （首页 / 尾页的全屏天空·温柔）
 ├─ portrait.player.boy.png        320 × 420    （开局选「男生」时用，真抠图 → alpha: true）
 ├─ portrait.player.girl.png       320 × 420    （开局选「女生」时用）
 ├─ portrait.player.boy.rest.png   320 × 420    （男生·干预成功后放松态）
@@ -87,6 +89,21 @@ D2–D6 五天的原始交付是 79 个文件 / 42.9 MB，直接进包会产出�
 > **校园俯瞰图是唯一的例外**，而且是刻意为之：它的比例是 7:4，而舞台可用区约 1.45。
 > 它按 `contain` 等比缩放居中（见 `src/styles/base.css` 的 `.walk-map`），
 > 所以既不需要、也不该服从 16:9 的舞台基准 —— `tests/unit/art.test.ts` 里有一条断言专门守着这条例外。
+
+## 首页 / 尾页的**全屏天空**（`title.bg.*`）
+
+`title.bg.dim` / `title.bg.gentle` 是**同一套 1280 × 720 基准**，但用法和上面那批不一样：
+它们铺满的是**整个视口**（首页与尾页都是 `position:fixed;inset:0` 的全屏页），
+不是舞台那块圆角卡片。两个 id 是同一片天的两种心情（阴沉 / 温柔），
+由 CSS 的 `data-mood` 决定配哪一张、以及文字走奶油色还是墨色。
+
+- 它们来自**标题页交接包**（`title-screen-handoff/`），不是按天交来的素材，
+  所以入库时由 `scripts/import-title-art.py` 转码（重采样 1280×720 + WebP q88）。
+- **替换时只换 `src` 指向的文件、不改 id、不改尺寸、不改心情的对应关系**：
+  两张的用途是固定的（dim 用在开场与「雨过」，gentle 用在有存档的首页与其余三个结局），
+  换错了会让文字在亮天空上变成奶油色 —— 那是看不见的，只有真机截图才发现。
+- 验收脚本：`node tests/browser/fullpage-shots.mjs`（量铺满没铺满、盖没盖住 HUD、
+  底图是不是正式图），出图在 `tests/browser/shots/fullpage/`。
 
 ### 底图用 JPEG，叠加层用 PNG
 

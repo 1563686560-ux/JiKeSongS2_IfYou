@@ -2,7 +2,7 @@ import { config as defaultConfig } from '../../content';
 import { applyDerivedFlags, applyOutcome, createState, evalCondition, SaveSystem, starsFor, tierFor, type GameState } from './runtime';
 import { addMessage, readMessages } from './util';
 import { playerArtId, playerKeyOf, storyArtId } from './gender';
-import type { ArtSlot, D1Pose, DilemmaConfig, DialogueLine, EndingConfig, FlowNode, GameConfig, Interaction, MomentConfig, MoodTier, Outcome } from '../types/content';
+import type { ArtSlot, D1Pose, DilemmaConfig, DialogueLine, EndingConfig, FlowNode, GameConfig, Interaction, MomentConfig, MoodTier, Outcome, PageSky } from '../types/content';
 
 /**
  * D1 插画姿态的回退链。交付里女生没有「被批评后低头」那张，所以 down 要退到 tense；
@@ -116,12 +116,23 @@ export class Engine {
   }
 
   private async titleScreen(): Promise<'start' | 'resume'> {
-    let action = await this.ui.title(this.state.logs.collected.length, this.hasProgress());
+    let action = await this.ui.title(this.state.logs.collected.length, this.hasProgress(), this.pageSkyUrls());
     while (action === 'gallery') {
       await this.ui.gallery(this.collectedItems(), this.galleryGroups());
-      action = await this.ui.title(this.state.logs.collected.length, this.hasProgress());
+      action = await this.ui.title(this.state.logs.collected.length, this.hasProgress(), this.pageSkyUrls());
     }
     return action;
+  }
+
+  /**
+   * 全屏页（标题页 / 结局页）的两张天空底图：**AssetId 由内容层给**（`settings.pageSky`），
+   * 引擎只把 id 解析成 URL 再交给 UiSystem —— UiSystem 不认识美术表，也拿不到 AssetLoader
+   * （它只收"AssetId → URL"的解析结果，和 `askCustom` 收 resolver 是同一个理由）。
+   * 内容层没登记时返回空表，页面退回 CSS 里那条天空渐变。
+   */
+  private pageSkyUrls(): Partial<Record<PageSky, string>> {
+    const map = this.config.settings?.pageSky;
+    return map ? { dim: this.assets.url(map.dim), gentle: this.assets.url(map.gentle) } : {};
   }
 
   private async openGallery(): Promise<void> {
@@ -464,6 +475,10 @@ export class Engine {
       stars: starsFor(this.config, this.state.bond),
       historyLabel: useDays ? '七日云朵' : '这一路的心情',
       moodHistory: history,
+      // 结局页那片天由内容层定（EndingConfig.sky）；没写时才按场景时相兜底 ——
+      // 下雨的结局默认停在雨刚过的天，其余默认停在放晴的天。
+      sky: ending.sky ?? (ending.scene.theme === 'rain' ? 'dim' : 'gentle'),
+      bg: this.pageSkyUrls(),
       prevMessage: prev,
       onBottle: (text) => addMessage(text),
       onRestart: () => this.restart(),

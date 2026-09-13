@@ -1,5 +1,5 @@
 import type { GameConfig } from '../src/types/content';
-import { assets } from './assets';
+import { ASSET_IDS, assets } from './assets';
 import { campus } from './campus';
 import { customization, DEFAULT_FLAGS } from './customization';
 import { maps } from './map';
@@ -44,6 +44,10 @@ export const config: GameConfig = {
     derivedFlags: [{ key: 'sleepMinutes', kind: 'timeDiff', from: 'lightsOut', to: 'wake' }],
     // 地点过渡约 1 秒（测试里设为 0）
     transitionMs: 900,
+    // 标题页 / 结局页的全屏天空底图（交接包 title-screen-handoff 的两张心情图，见 PageSky）。
+    // 首页默认用 dim（开场那片压着雨云的天）；有存档时切 gentle（已经守护过一次了）。
+    // 结局页按 EndingConfig.sky 选。两张图都缺时页面退回 CSS 的天空渐变，不会变成空白。
+    pageSky: { dim: ASSET_IDS.titleBgDim, gentle: ASSET_IDS.titleBgGentle },
     // 日转场卡约 1.4 秒（测试里设为 0）
     dayCardMs: 1400,
     // 人物自动移动转场：**不设**，于是时长由路线实际长度 ÷ campus.speed 推出

@@ -211,4 +211,32 @@ describe('点击安全（全局样式审计）', () => {
   it('§9 HUD 按钮要有足够的触摸面积', () => {
     expect(bodyOf('.hud-btn'), 'HUD 按钮缺少最小高度').toMatch(/min-height:\s*(3[2-9]|[4-9]\d)px/);
   });
+
+  /**
+   * 首页（标题页）与尾页（结局页）是**全屏页**（交接包 title-screen-handoff）：
+   * 铺满整个视口，而不是住在 .scene 那块圆角舞台里。jsdom 不算布局，所以"全屏"这件事
+   * 只能在这里按声明查 —— DOM 侧的挂载点与离场见 tests/unit/fullPage.test.ts。
+   */
+  it('首页与尾页都是 fixed 铺满视口、且层级高于底部演出带（4）', () => {
+    // 两页共用一条规则（同一套皮肤的两个心情），所以按其中一个选择器取规则体
+    // （bodyOf 是按**拆分后的单个选择器**匹配的，不能把 '.a,.b' 整串传进去）
+    const page = bodyOf('.title-screen');
+    expect(page, '首页/尾页没有铺满视口').toMatch(/inset:\s*0/);
+    expect(page, '首页/尾页必须是 fixed，否则会被 .game 的宽度与内边距框住').toMatch(/position:\s*fixed/);
+    const z = /z-index:\s*(\d+)/.exec(page);
+    expect(z, '首页/尾页没有 z-index：底部演出带（4）会盖在它们上面吃掉点击').toBeTruthy();
+    expect(Number(z![1]), '首页/尾页的层级必须高于底部演出带（4）').toBeGreaterThan(4);
+    expect(bodyOf('.ending'), '结局页必须压在标题页之上（两者同时存在的窗口期里不能让标题页翻上来）').toMatch(/z-index:\s*2\d/);
+  });
+
+  it('首页/尾页的两档心情都必须给前景色（亮底上写奶油字等于没写）', () => {
+    const dim = bodyOf('.title-screen[data-mood="dim"]');
+    const gentle = bodyOf('.title-screen[data-mood="gentle"]');
+    for (const [mood, body] of [['dim', dim], ['gentle', gentle]] as const) {
+      expect(body, `${mood} 档没有 --page-fg`).toMatch(/--page-fg:\s*#/);
+      expect(body, `${mood} 档没有 --page-veil：文字在图上的任何局部都会失去对比度`).toMatch(/--page-veil:/);
+    }
+    expect(dim, 'dim 是深底，文字应该走浅色').not.toMatch(/--page-fg:\s*#3/);
+    expect(gentle, 'gentle 是亮底，文字应该走墨色').toMatch(/--page-fg:\s*#[0-5]/);
+  });
 });

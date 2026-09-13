@@ -231,6 +231,21 @@
       "note": "坐标基准直接来自 map_routes_ts 交接包：MAP_SIZE 就是 1344×768，路线点是**归一化 0..1**，所以这里不做任何换算。四个地点：女生宿舍(0.19,0.265)、男生宿舍(0.19,0.565)、教学楼(0.5,0.285)、操场(0.8,0.4)"
     },
 
+    "title.bg.dim": {
+      "file": "title.bg.dim",
+      "width": 1280,
+      "height": 720,
+      "desc": "标题页背景·阴沉（雨云压着的天）",
+      "note": "来自标题页交接包 title-screen-handoff/bg_title_dim.png（原生 1672×940），由 scripts/import-title-art.py 重采样到舞台基准。**铺满整个视口**（不是舞台内的一块），所以按舞台基准交付、用 background-size:cover"
+    },
+    "title.bg.gentle": {
+      "file": "title.bg.gentle",
+      "width": 1280,
+      "height": 720,
+      "desc": "标题页背景·温柔（晒得暖的白云蓝天）",
+      "note": "交接包 bg_title_gentle.png（原生 1672×941）重采样。**同一个 id 也用在结局页**：交接包交来的两个心情变体本来就是「开场的一幕天」与「收尾的一幕天」，结局按 ending.scene.theme 选 gentle/dim（见 UiSystem.showEndingPanel），不是重复登记"
+    },
+
     "signal.cloud.dark": {
       "file": "signal.cloud.dark",
       "width": 480,

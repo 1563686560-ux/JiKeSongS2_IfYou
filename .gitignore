@@ -22,11 +22,14 @@ tmp-cutout/
 
 # ── 美术交付源包：不是构建输入，也不随公开仓库发布 ──────────────────────────
 # 构建只读 art/（见 scripts/art-lib.mjs 的 ART_DIR）。把这批交付包整批剔掉之后实测：
-# `npm run build` 产出仍是 6,802.93 kB（与带它们时一字不差），`npm test` 208/208 全过。
+# `npm run build` 产出仍是 7,041.90 kB（与带它们时一字不差），`npm test` 220/220 全过。
 # 也就是说游戏一张图都不缺 —— 它们是美工交来的原件，留在本地做备份即可。
+# （每批交付的图都由 scripts/import-*.py 转码后落进 art/，所以源包本身不是构建输入。）
 如果有你_DAY*人物素材_可发送_*/
 如果有你-场景-Day*/
 map-campus-overview*/
 
-# 标题页交接材料（4.8 MB）：从来没有入过库，也不是构建输入
+# 标题页交接材料（4.8 MB）：从来没有入过库，也不是构建输入。
+# 它那两张天空图已经由 scripts/import-title-art.py 落成 art/title.bg.dim.webp /
+# title.bg.gentle.webp（那两张**必须入库**，否则 Pages 上部署出来的首页会退回占位色块）。
 title-screen-handoff/
