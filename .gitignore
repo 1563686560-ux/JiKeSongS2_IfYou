@@ -1,0 +1,32 @@
+# 构建产物（单文件 HTML，随时可 `npm run build` 重新生成）
+dist/
+
+# 依赖
+node_modules/
+
+# 真浏览器验收的截图（116 MB，`npm run test:browser` / `shots:*` 随时可重新生成）。
+# 不入库的理由：它们是**给人看的证据**，不是源码 —— 每次重跑画廊都会整体重写，
+# 入库只会让每一次提交都拖着上百 MB 的二进制。需要看画面时跑一次脚本即可。
+tests/browser/shots/
+
+# 调试期的临时日志
+tmp-*.log
+tmp-*.txt
+
+*.local
+.DS_Store
+Thumbs.db
+
+# 早期抠图实验的中间产物（诊断用，不是构建输入）
+tmp-cutout/
+
+# ── 美术交付源包：不是构建输入，也不随公开仓库发布 ──────────────────────────
+# 构建只读 art/（见 scripts/art-lib.mjs 的 ART_DIR）。把这批交付包整批剔掉之后实测：
+# `npm run build` 产出仍是 6,802.93 kB（与带它们时一字不差），`npm test` 208/208 全过。
+# 也就是说游戏一张图都不缺 —— 它们是美工交来的原件，留在本地做备份即可。
+如果有你_DAY*人物素材_可发送_*/
+如果有你-场景-Day*/
+map-campus-overview*/
+
+# 标题页交接材料（4.8 MB）：从来没有入过库，也不是构建输入
+title-screen-handoff/

@@ -1,0 +1,273 @@
+{
+  "_comment": "美术交付规格 —— 唯一的尺寸真相来源。scripts/art.mjs 用它校验 art/ 里的图，content/assets.ts 也从这里读尺寸基准，content/map.ts 的地图坐标基准也直接取自这里。改这里之前先看《美术交付清单.md》。",
+  "_alpha": "可选字段 \"alpha\": true = 这张图是**真透明抠图**（真透明通道被实际使用），UI 会按\"抠图\"渲染：不画卡片背景与描边，让人物直接站在场景上。务必显式标注：交付里既有 RGBA 但其实全不透明的 PNG（D1 那九张就是），也有真抠图，靠扩展名分不出来。",
+  "_story": "art.story.<who>.<name> = D2 之后的剧情图（who 取 boy/girl，男女互斥；不分性别的用 art.story.common.* / art.story.teacher.*）。剧情里只写语义名字（ArtSlot 的 { story }），由引擎按开局性别解析 —— 从类型上就不可能把男女主角混进同一条剧情画面。",
+  "_stage": "整屏舞台基准 = 1280×720（16:9）。凡是铺满整个舞台的图（地点背景、天气/光线叠加层、结局背景）都用它。美工 A 交来的环境图原生是 1672×941 ≈ 16:9，换算到 1280×720 的横纵比偏差只有 0.053%（亚像素级），所以既不裁画面也不拉伸。",
+  "assets": {
+    "map.bedroom.background": {
+      "file": "map.bedroom.background",
+      "width": 1280,
+      "height": 720,
+      "desc": "卧室背景·基底（地点调试入口的底图，也是没有时相变体时的卧室场景）",
+      "note": "MapConfig.baseWidth/baseHeight 直接读这个尺寸（content/map.ts 从本文件取），不要在两处各写一遍"
+    },
+    "map.bedroom.morning": {
+      "file": "map.bedroom.morning",
+      "width": 1280,
+      "height": 720,
+      "desc": "卧室·清晨（D1 06:20 黎明）",
+      "note": "时相场景 bedroomMorning 用；美工 A《环境与移动》交付的 bg_bedroom_morning.png"
+    },
+    "map.bedroom.night": {
+      "file": "map.bedroom.night",
+      "width": 1280,
+      "height": 720,
+      "desc": "卧室·夜灯（睡前：焦虑等）",
+      "note": "时相场景 bedroomNight 用；对应 bg_bedroom_night_lit.png"
+    },
+    "map.bedroom.lightsOut": {
+      "file": "map.bedroom.lightsOut",
+      "width": 1280,
+      "height": 720,
+      "desc": "卧室·熄灯（睡眠不足事件）",
+      "note": "时相场景 bedroomLightsOut 用；对应 bg_bedroom_lights_out.png"
+    },
+    "map.classroom.background": {
+      "file": "map.classroom.background",
+      "width": 1280,
+      "height": 720,
+      "desc": "教室背景·基底（叠加层之下的那一张）",
+      "note": "清晨/夜晚的差别由 overlay.classroom.morning / overlay.classroom.night 叠加表达，不要出两套教室底图"
+    },
+    "map.playground.background": {
+      "file": "map.playground.background",
+      "width": 1280,
+      "height": 720,
+      "desc": "操场背景（当前用的是 D1 跑操那张，因为首批交付里只有它）",
+      "note": "等美工 A 交来中性的操场底图，把这个 id 换成底图即可，不要改 id"
+    },
+    "overlay.rain": {
+      "file": "overlay.rain",
+      "width": 1280,
+      "height": 720,
+      "desc": "雨幕叠加层",
+      "note": "必须带透明通道（PNG/WebP），整层覆盖在场景上，不遮挡点击。浓度由图自己的 alpha 决定，CSS 不再二次压暗"
+    },
+    "overlay.classroom.morning": {
+      "file": "overlay.classroom.morning",
+      "width": 1280,
+      "height": 720,
+      "desc": "教室·清晨光（冷调薄光，alpha 很低）",
+      "note": "叠在 map.classroom.background 之上 = 清晨的教室；必须透明"
+    },
+    "overlay.classroom.night": {
+      "file": "overlay.classroom.night",
+      "width": 1280,
+      "height": 720,
+      "desc": "教室·夜间光（压暗）",
+      "note": "叠在 map.classroom.background 之上 = 晚自习的教室；必须透明"
+    },
+    "portrait.player": {
+      "file": "portrait.player",
+      "width": 320,
+      "height": 420,
+      "desc": "主角立绘（未定性别时的兜底槽位）",
+      "note": "约 3:4 半身；背景透明；人物脚底/胸口对齐底部，不要留大片空白"
+    },
+    "portrait.player.boy": {
+      "file": "portrait.player.boy",
+      "width": 320,
+      "height": 420,
+      "alpha": true,
+      "desc": "男生主角立绘（开局选「男生」时用）",
+      "note": "交付说明 §一.2：运行时只加载对应性别的主角素材，男女不能同时出现在同一画面。**实测是真透明抠图**（21% 全透明像素），所以标 alpha:true —— 立绘要「站在铺满的背景上」，不是画在一张卡片里（这条标注此前一直漏了，于是它被当成照片卡渲染）"
+    },
+    "portrait.player.girl": {
+      "file": "portrait.player.girl",
+      "width": 320,
+      "height": 420,
+      "alpha": true,
+      "desc": "女生主角立绘（开局选「女生」时用）",
+      "note": "同上"
+    },
+    "portrait.player.boy.rest": {
+      "file": "portrait.player.boy.rest",
+      "width": 320,
+      "height": 420,
+      "alpha": true,
+      "desc": "男生主角·放松态（最近一次干预成功后）",
+      "note": "交付说明：\"干预成功、情绪缓和后使用\"。真透明抠图"
+    },
+    "portrait.player.girl.rest": {
+      "file": "portrait.player.girl.rest",
+      "width": 320,
+      "height": 420,
+      "alpha": true,
+      "desc": "女生主角·放松态（最近一次干预成功后）",
+      "note": "同上"
+    },
+    "portrait.teacher": {
+      "file": "portrait.teacher",
+      "width": 320,
+      "height": 420,
+      "alpha": true,
+      "desc": "老师·普通站立（男女路线共用）",
+      "note": "交付说明：老师素材男女路线共用，不按性别复制两套。真透明抠图（64% 全透明像素）"
+    },
+    "portrait.teacher.strict": {
+      "file": "portrait.teacher.strict",
+      "width": 320,
+      "height": 420,
+      "alpha": true,
+      "desc": "老师·严肃批评（拖堂说教 / 再次被批评等时刻）",
+      "note": "由 MomentConfig.npcPose='strict' 触发。真透明抠图（52% 全透明像素）—— D1_0810 的干预窗口里它与主角紧绷动作并排，此前被画上一张半透明卡片，真机截图里看得一清二楚"
+    },
+    "portrait.npc": {
+      "file": "portrait.npc",
+      "width": 320,
+      "height": 420,
+      "desc": "NPC 立绘（L1 底部对白框右侧槽位）",
+      "note": "脚本没有给 NPC 台词，这个槽位目前恒为暗色；仍按同规格交付"
+    },
+    "art.customize.boy": {
+      "file": "art.customize.boy",
+      "width": 400,
+      "height": 533,
+      "desc": "开局角色选择·男生基础形象",
+      "note": "交付说明 player_boy/：用于角色选择"
+    },
+    "art.customize.girl": {
+      "file": "art.customize.girl",
+      "width": 400,
+      "height": 533,
+      "desc": "开局角色选择·女生基础形象",
+      "note": "交付说明 player_girl/：用于角色选择"
+    },
+    "art.d1.boy.calm": {
+      "file": "art.d1.boy.calm",
+      "width": 480,
+      "height": 640,
+      "alpha": true,
+      "desc": "D1 男生·平静（早读、普通对话）",
+      "note": "**已是真透明抠图**（实测 55% 全透明像素）。此前这 9 张是按 JPEG 导入的，alpha 被压平 —— 人物在画面上是一块灰卡片、站不到背景上。第四轮导入改成从四边向内连色去背、输出带 alpha 的 WebP（scripts/import-stage-art.py），所以这里必须标 alpha:true，否则 UI 仍会按\"照片卡\"渲染（画卡片底与描边）"
+    },
+    "art.d1.boy.tired": { "file": "art.d1.boy.tired", "width": 480, "height": 640, "alpha": true, "desc": "D1 男生·疲惫（清晨、长时间学习后）", "note": "同上" },
+    "art.d1.boy.tense": { "file": "art.d1.boy.tense", "width": 480, "height": 640, "alpha": true, "desc": "D1 男生·紧绷（压力上升、被批评）", "note": "同上" },
+    "art.d1.boy.relax": { "file": "art.d1.boy.relax", "width": 480, "height": 640, "alpha": true, "desc": "D1 男生·放松（干预成功后）", "note": "同上" },
+    "art.d1.boy.down": { "file": "art.d1.boy.down", "width": 480, "height": 640, "desc": "D1 男生·被批评后低头（超时/未干预）", "note": "**这一张仍是压平的不透明 JPEG**：交付源是带整间教室背景的插画，从四边连色去背会把课桌一起吃掉，所以本轮没做抠图（见 import-stage-art.py 文件头 b/c 两条）。内容里也没有任何时刻引用它 —— 低头由 POSE_FALLBACK 退到 tense。等美工补一张同构图的透明抠图再接线" },
+    "art.d1.girl.calm": { "file": "art.d1.girl.calm", "width": 480, "height": 640, "alpha": true, "desc": "D1 女生·平静", "note": "同上" },
+    "art.d1.girl.tired": { "file": "art.d1.girl.tired", "width": 480, "height": 640, "alpha": true, "desc": "D1 女生·疲惫", "note": "同上" },
+    "art.d1.girl.tense": { "file": "art.d1.girl.tense", "width": 480, "height": 640, "alpha": true, "desc": "D1 女生·紧绷", "note": "同上" },
+    "art.d1.girl.relax": { "file": "art.d1.girl.relax", "width": 480, "height": 640, "alpha": true, "desc": "D1 女生·放松", "note": "同上" },
+    "art.d1.boy.sit": { "file": "art.d1.boy.sit", "width": 480, "height": 640, "alpha": true, "desc": "D1 男生·教室正常坐姿（完整课桌）", "note": "交付源本身就是带 alpha 的抠图（课桌连着人一起抠出来），80% 全透明像素。不做二次去背，只等比缩放 + 套同一个裁剪框（见下）" },
+    "art.d1.boy.sitRelax": { "file": "art.d1.boy.sitRelax", "width": 480, "height": 640, "alpha": true, "desc": "D1 男生·放松坐姿（完整课桌）", "note": "同上" },
+    "art.d1.girl.sit": { "file": "art.d1.girl.sit", "width": 480, "height": 640, "alpha": true, "desc": "D1 女生·教室正常坐姿（完整课桌）", "note": "同上" },
+    "art.d1.girl.sitRelax": { "file": "art.d1.girl.sitRelax", "width": 480, "height": 640, "alpha": true, "desc": "D1 女生·放松坐姿（完整课桌）", "note": "同上" },
+    "art.d1.boy.strain": { "file": "art.d1.boy.strain", "width": 480, "height": 640, "desc": "D1 男生·被老师批评的紧绷动作", "note": "**与 down 同样仍是压平的不透明 JPEG**，理由见 down 那条。内容里目前也没有引用它" },
+    "art.d1.girl.strain": { "file": "art.d1.girl.strain", "width": 480, "height": 640, "desc": "D1 女生·被老师批评的紧绷动作", "note": "同上" },
+    "art.story.boy.report": { "file": "art.story.boy.report", "width": 480, "height": 640, "desc": "D2 男生·查看成绩单", "note": "D2_0800。**带背景的整幅图**（交付源是 JPG，无透明通道），按全舞台 CG 卡演出" },
+    "art.story.girl.report": { "file": "art.story.girl.report", "width": 480, "height": 640, "alpha": true, "desc": "D2 女生·查看成绩单", "note": "D2_0800；**这一张是透明抠图**（实测 57% 全透明像素、四角 alpha=0），与男生那张形态不一致 —— 靠 alpha:true 走「抠图不画卡片描边」的渲染路径，仍待美工统一形态" },
+    "art.story.teacher.handout": { "file": "art.story.teacher.handout", "width": 480, "height": 640, "alpha": true, "desc": "D2 老师·递出成绩单", "note": "D2_0800；透明抠图（72% 全透明像素）。老师素材男女路线共用（交付说明 §一.4）" },
+    "art.story.common.crowd": { "file": "art.story.common.crowd", "width": 640, "height": 480, "desc": "D2 同学聚拢围观（事件画面）", "note": "D2_0800 干预窗口；男女路线共用，画面里没有男女主角" },
+    "art.story.boy.bunkSleep": { "file": "art.story.boy.bunkSleep", "width": 480, "height": 640, "desc": "D2 男生·上下铺皱眉睡觉", "note": "D2_0620 赖床 / D2_2330 睡眠不足；D3_2340 直接复用同一张（交付包里就是同一份文件，不重复导入）" },
+    "art.story.girl.bunkSleep": { "file": "art.story.girl.bunkSleep", "width": 480, "height": 640, "desc": "D2 女生·上下铺皱眉睡觉", "note": "同上" },
+    "art.story.boy.canteen": { "file": "art.story.boy.canteen", "width": 640, "height": 480, "desc": "D2 男生·食堂吃饭", "note": "D2_1240。说明书写的是\"12:40 食堂\"，但那一刻的地点与文案是教室（见《待确认问题》6.8）" },
+    "art.story.girl.canteen": { "file": "art.story.girl.canteen", "width": 640, "height": 480, "desc": "D2 女生·食堂吃饭", "note": "同上" },
+    "art.story.boy.morningRead": { "file": "art.story.boy.morningRead", "width": 640, "height": 480, "desc": "D3 男生·晨读喝豆浆", "note": "D3_0750" },
+    "art.story.girl.morningRead": { "file": "art.story.girl.morningRead", "width": 640, "height": 480, "desc": "D3 女生·晨读喝豆浆", "note": "同上" },
+    "art.story.boy.lunchAlone": { "file": "art.story.boy.lunchAlone", "width": 640, "height": 480, "desc": "D3 男生·一个人的午饭", "note": "D3_1230 干预窗口" },
+    "art.story.girl.lunchAlone": { "file": "art.story.girl.lunchAlone", "width": 640, "height": 480, "desc": "D3 女生·一个人的午饭", "note": "同上" },
+    "art.story.boy.examDream": { "file": "art.story.boy.examDream", "width": 480, "height": 640, "desc": "D4 男生·梦里都在考试", "note": "D4_0610" },
+    "art.story.girl.examDream": { "file": "art.story.girl.examDream", "width": 480, "height": 640, "desc": "D4 女生·梦里都在考试", "note": "同上" },
+    "art.story.boy.rankCalled": { "file": "art.story.boy.rankCalled", "width": 640, "height": 480, "desc": "D4 男生·排名被当众念出", "note": "D4_0930 干预窗口" },
+    "art.story.girl.rankCalled": { "file": "art.story.girl.rankCalled", "width": 640, "height": 480, "desc": "D4 女生·排名被当众念出", "note": "同上" },
+    "art.story.boy.phoneBow": { "file": "art.story.boy.phoneBow", "width": 640, "height": 480, "desc": "D4 男生·家长来电低头", "note": "D4_2000；与 art.story.common.phoneCall 并排" },
+    "art.story.girl.phoneBow": { "file": "art.story.girl.phoneBow", "width": 640, "height": 480, "desc": "D4 女生·家长来电低头", "note": "同上" },
+    "art.story.common.phoneCall": { "file": "art.story.common.phoneCall", "width": 512, "height": 512, "desc": "D4 手机·家长来电（道具特写）", "note": "D4_2000 干预窗口的第二张。交付源是 1024×1024（1:1），按道具特写接，不铺满舞台" },
+    "art.story.boy.notesPassed": { "file": "art.story.boy.notesPassed", "width": 640, "height": 480, "desc": "D5 男生·同桌把笔记推过来", "note": "D5_1000；与 art.story.common.notesProp 并排" },
+    "art.story.girl.notesPassed": { "file": "art.story.girl.notesPassed", "width": 640, "height": 480, "desc": "D5 女生·同桌把笔记推过来", "note": "同上" },
+    "art.story.common.notesProp": { "file": "art.story.common.notesProp", "width": 512, "height": 512, "desc": "D5 课堂笔记（道具特写）", "note": "D5_1000 第二张。交付说明：笔记内容只是视觉参考，真实文字由程序显示" },
+    "art.story.common.soda": { "file": "art.story.common.soda", "width": 512, "height": 512, "desc": "D5 冰汽水（道具特写）", "note": "D5_1300。交付说明：无品牌道具参考，正式版不要直接使用图上的文字/品牌" },
+    "art.story.boy.bondCheck": { "file": "art.story.boy.bondCheck", "width": 640, "height": 480, "desc": "D5 男生·羁绊检查点", "note": "D5_2100（羁绊达标）/ D5_2101（没达标）共用同一张：两版差别在台词与云色，不在画面" },
+    "art.story.girl.bondCheck": { "file": "art.story.girl.bondCheck", "width": 640, "height": 480, "desc": "D5 女生·羁绊检查点", "note": "同上" },
+    "art.story.boy.invigilate": { "file": "art.story.boy.invigilate", "width": 640, "height": 480, "desc": "D6 男生·监考压力捂耳朵", "note": "D6_0830；与 art.story.common.examPaper 并排" },
+    "art.story.girl.invigilate": { "file": "art.story.girl.invigilate", "width": 640, "height": 480, "desc": "D6 女生·监考压力捂耳朵", "note": "同上" },
+    "art.story.common.examPaper": { "file": "art.story.common.examPaper", "width": 512, "height": 512, "desc": "D6 试卷与铅笔（道具特写）", "note": "D6_0830 干预窗口的第二张。交付说明：试卷文字由程序 UI 叠加，不要用图上的字" },
+    "art.story.common.coldLunch": { "file": "art.story.common.coldLunch", "width": 640, "height": 480, "desc": "D6 教室·饭有点凉", "note": "D6_1200。交付源是 1216×912（4:3），而别的教室空镜都是 16:9 —— 做场景底图会被 cover 裁掉 25% 画面高度，所以按插画卡接" },
+    "art.story.boy.rankPost": { "file": "art.story.boy.rankPost", "width": 640, "height": 480, "desc": "D6 男生·排名公布", "note": "D6_2030 干预窗口" },
+    "art.story.girl.rankPost": { "file": "art.story.girl.rankPost", "width": 640, "height": 480, "desc": "D6 女生·排名公布", "note": "同上" },
+    "art.story.boy.lastNight": { "file": "art.story.boy.lastNight", "width": 480, "height": 640, "desc": "D6 男生·最后一夜睡眠不足", "note": "D6_2359（15 秒干预窗口）" },
+    "art.story.girl.lastNight": { "file": "art.story.girl.lastNight", "width": 480, "height": 640, "desc": "D6 女生·最后一夜睡眠不足", "note": "同上" },
+    "art.story.boy.finalLookUp": { "file": "art.story.boy.finalLookUp", "width": 480, "height": 640, "desc": "D7 男生·终章抬头", "note": "D7_1500（L3）。交付说明 §二：\"不得同时加载两张\"，按开局性别二选一" },
+    "art.story.girl.finalLookUp": { "file": "art.story.girl.finalLookUp", "width": 480, "height": 640, "desc": "D7 女生·终章抬头", "note": "同上" },
+    "art.story.boy.lookUp": { "file": "art.story.boy.lookUp", "width": 480, "height": 640, "desc": "D4 男生·抬头（黄昏粉笔灰）", "note": "**这一版没交**：交付说明 §四点名了「男生_抬头_复用.png」，DAY4 包里没有该文件。id 先按 480×640 预留，交给美工即可直接放文件（见《待确认问题》6.8）" },
+    "art.story.girl.lookUp": { "file": "art.story.girl.lookUp", "width": 480, "height": 640, "desc": "D4 女生·抬头（黄昏粉笔灰）", "note": "同上" },
+    "art.story.common.rankProjection": { "file": "art.story.common.rankProjection", "width": 1280, "height": 720, "desc": "D6 排名公布·投影层（空教室 + 幕布上的名次）", "note": "**这一版没交**：交来的 排名公布_投影道具.jpg 里男生与女生同框，违反交付说明 §一，所以没接入。需要重出或按性别裁两版" },
+    "map.playground.windy": { "file": "map.playground.windy", "width": 1280, "height": 720, "desc": "操场·风把云吹得很快（D3 15:40）", "note": "时相场景 playgroundWindy 用。交付源是 1368×768（1.78125，比 16:9 宽 0.19%），重采样到舞台基准，sub-pixel 级差异" },
+    "map.classroom.foggy": { "file": "map.classroom.foggy", "width": 1280, "height": 720, "desc": "教室·下午隔着雾（D4 14:00）", "note": "时相场景 classroomFoggy 用；说明书写\"使用对应性别的眼神放空状态叠加在本背景上\"，放空图就是 art.d1.<who>.relax" },
+    "map.classroom.dusk": { "file": "map.classroom.dusk", "width": 1280, "height": 720, "desc": "教室·黄昏粉笔灰（D4 17:00）", "note": "时相场景 classroomDusk 用。交付说明在这一刻还点名了\"男生_抬头_复用.png / 女生_抬头_复用.png\"，但包里没有这两个文件 —— 见《待确认问题》6.8" },
+    "map.classroom.earlyLight": { "file": "map.classroom.earlyLight", "width": 1280, "height": 720, "desc": "教室·天亮得早一点（D5 07:40）", "note": "时相场景 classroomEarlyLight 用" },
+    "map.playground.gentle": { "file": "map.playground.gentle", "width": 1280, "height": 720, "desc": "操场·温柔的风（D5 16:30）", "note": "时相场景 playgroundGentle 用；不带雨幕，theme 也不是 rain" },
+    "map.classroom.makeup": { "file": "map.classroom.makeup", "width": 1280, "height": 720, "desc": "教室·补课清晨（D6 07:30）", "note": "时相场景 classroomMakeup 用" },
+    "map.playground.rainRun": { "file": "map.playground.rainRun", "width": 1280, "height": 720, "desc": "操场·考后冒雨（D6 15:00）", "note": "雨后未干预时的底图。雨是**画在图里的**，所以这个场景不加 overlay.rain（叠上去就是两层雨）" },
+    "map.playground.clearing": { "file": "map.playground.clearing", "width": 1280, "height": 720, "desc": "操场·雨后提前放晴（D6 15:00 干预成功）", "note": "由 MomentArt.successScene 切换（说明 §四.3：\"雨天和放晴是两张背景，根据干预结果切换\"）" },
+    "map.playground.blueSky": { "file": "map.playground.blueSky", "width": 1280, "height": 720, "desc": "操场·今天的天好蓝（D7 07:50）", "note": "时相场景 playgroundBlueSky 用" },
+    "map.classroom.penSound": { "file": "map.classroom.penSound", "width": 1280, "height": 720, "desc": "教室·笔尖沙沙（D7 10:30）", "note": "时相场景 classroomPenSound 用" },
+    "map.classroom.finale": { "file": "map.classroom.finale", "width": 1280, "height": 720, "desc": "终章·抬头背景（D7 15:00）", "note": "时相场景 classroomFinale 用；与按性别的 art.story.<who>.finalLookUp 立绘组合" },
+    "ending.memoryEcho": { "file": "ending.memoryEcho", "width": 1280, "height": 720, "desc": "记忆回响·黑屏背景（终章推近之后）", "note": "结局前的「记忆回响」段用它铺屏（engine.runEnding），文字仍由云朵层显示" },
+    "ending.card": {
+      "file": "ending.card",
+      "width": 1280,
+      "height": 720,
+      "desc": "结局场景背景（晴空 / 生长 / 雨过 共用）：D7 交付的「结局页_七朵云背景」",
+      "note": "id 叫 ending.card 是历史命名，实际当作整屏结局背景用（background-size:cover），所以按舞台基准交付。七朵云、图鉴入口、留言瓶与结局文字都由程序 UI 叠加（结局页面板 .ending-card）"
+    },
+
+    "map.campus.base": {
+      "file": "map.campus.base",
+      "width": 1344,
+      "height": 768,
+      "desc": "校园俯瞰地图（人物自动移动转场的底图）",
+      "note": "坐标基准直接来自 map_routes_ts 交接包：MAP_SIZE 就是 1344×768，路线点是**归一化 0..1**，所以这里不做任何换算。四个地点：女生宿舍(0.19,0.265)、男生宿舍(0.19,0.565)、教学楼(0.5,0.285)、操场(0.8,0.4)"
+    },
+
+    "signal.cloud.dark": {
+      "file": "signal.cloud.dark",
+      "width": 480,
+      "height": 320,
+      "alpha": true,
+      "desc": "情绪信号·乌云（教室/操场的压力时刻）",
+      "note": "对应 Signal.kind='darkCloud'。这一组是**替换掉 emoji 占位图案**的那批图（从前画面上是 🌧◌✗💤📱🌫 六个字符）"
+    },
+    "signal.cloud.gray": { "file": "signal.cloud.gray", "width": 480, "height": 320, "alpha": true, "desc": "情绪信号·灰云（阴郁未散的过渡态）", "note": "对应 Signal.kind='grayCircle'" },
+    "signal.cloud.white": { "file": "signal.cloud.white", "width": 480, "height": 320, "alpha": true, "desc": "情绪信号·白云（平静）", "note": "Signal.kind='custom' 且内容层没另给图时的兜底（SIGNAL_ART.custom）" },
+    "signal.cloud.gold": { "file": "signal.cloud.gold", "width": 480, "height": 320, "alpha": true, "desc": "情绪信号·金云（被守护住的那一刻）", "note": "结局页七朵云的历史行与守护之光反馈用" },
+    "signal.zzz": { "file": "signal.zzz", "width": 480, "height": 320, "alpha": true, "desc": "情绪信号·困倦碎片（卧室的睡眠时刻）", "note": "对应 Signal.kind='sleepZzz'" },
+    "signal.redCross": { "file": "signal.redCross", "width": 256, "height": 256, "alpha": true, "desc": "情绪信号·红叉（做错/被否定）", "note": "对应 Signal.kind='redCross'" },
+    "signal.isolation": { "file": "signal.isolation", "width": 256, "height": 256, "alpha": true, "desc": "情绪信号·孤立圆（被隔在外面）", "note": "给 kind='custom' 的时刻用：内容层写 Signal.asset='signal.isolation' 即可（SIGNAL_ART.custom 只是没指定时的兜底）" },
+    "signal.phone": { "file": "signal.phone", "width": 256, "height": 256, "alpha": true, "desc": "情绪信号·手机震动（家长来电）", "note": "对应 Signal.kind='phoneWave'" },
+    "signal.arrow": { "file": "signal.arrow", "width": 256, "height": 256, "alpha": true, "desc": "指路箭头（人物自动移动转场的目标提示）", "note": "转场里指向目的地点位" },
+    "signal.exitHighlight": { "file": "signal.exitHighlight", "width": 256, "height": 256, "alpha": true, "desc": "出口高亮圈（地图上的离开点）", "note": "转场里圈出起点/终点" },
+    "vfx.goldenZipper": { "file": "vfx.goldenZipper", "width": 320, "height": 480, "alpha": true, "desc": "特效·金色拉链（守护之光装上）", "note": "干预成功时的 L2 短动画素材，竖构图" },
+    "vfx.protectiveHand": { "file": "vfx.protectiveHand", "width": 480, "height": 400, "alpha": true, "desc": "特效·护住的那只手（干预动作）", "note": "干预窗口按下互动时叠在立绘上" },
+
+    "move.boy.down.1": { "file": "move.boy.down.1", "width": 128, "height": 128, "alpha": true, "desc": "男生行走·向下 第1帧", "note": "行走帧两帧循环。**原生就是 128×128 且带透明通道**，按原始尺寸交付、不做重采样，否则两帧之间人物会抖" },
+    "move.boy.down.2": { "file": "move.boy.down.2", "width": 128, "height": 128, "alpha": true, "desc": "男生行走·向下 第2帧", "note": "同上" },
+    "move.boy.up.1": { "file": "move.boy.up.1", "width": 128, "height": 128, "alpha": true, "desc": "男生行走·向上 第1帧", "note": "同上" },
+    "move.boy.up.2": { "file": "move.boy.up.2", "width": 128, "height": 128, "alpha": true, "desc": "男生行走·向上 第2帧", "note": "同上" },
+    "move.boy.left.1": { "file": "move.boy.left.1", "width": 128, "height": 128, "alpha": true, "desc": "男生行走·向左 第1帧", "note": "同上" },
+    "move.boy.left.2": { "file": "move.boy.left.2", "width": 128, "height": 128, "alpha": true, "desc": "男生行走·向左 第2帧", "note": "同上" },
+    "move.boy.right.1": { "file": "move.boy.right.1", "width": 128, "height": 128, "alpha": true, "desc": "男生行走·向右 第1帧", "note": "同上" },
+    "move.boy.right.2": { "file": "move.boy.right.2", "width": 128, "height": 128, "alpha": true, "desc": "男生行走·向右 第2帧", "note": "同上" },
+    "move.girl.down.1": { "file": "move.girl.down.1", "width": 96, "height": 128, "alpha": true, "desc": "女生行走·向下 第1帧", "note": "女生原生是 96×128（比男生窄），仍是原始尺寸交付；**不要为了\"和男生一样\"拉伸成 128×128**，那会把人压扁" },
+    "move.girl.down.2": { "file": "move.girl.down.2", "width": 96, "height": 128, "alpha": true, "desc": "女生行走·向下 第2帧", "note": "同上" },
+    "move.girl.up.1": { "file": "move.girl.up.1", "width": 96, "height": 128, "alpha": true, "desc": "女生行走·向上 第1帧", "note": "同上" },
+    "move.girl.up.2": { "file": "move.girl.up.2", "width": 96, "height": 128, "alpha": true, "desc": "女生行走·向上 第2帧", "note": "同上" },
+    "move.girl.left.1": { "file": "move.girl.left.1", "width": 96, "height": 128, "alpha": true, "desc": "女生行走·向左 第1帧", "note": "同上" },
+    "move.girl.left.2": { "file": "move.girl.left.2", "width": 96, "height": 128, "alpha": true, "desc": "女生行走·向左 第2帧", "note": "同上" },
+    "move.girl.right.1": { "file": "move.girl.right.1", "width": 96, "height": 128, "alpha": true, "desc": "女生行走·向右 第1帧", "note": "同上" },
+    "move.girl.right.2": { "file": "move.girl.right.2", "width": 96, "height": 128, "alpha": true, "desc": "女生行走·向右 第2帧", "note": "同上" }
+  },
+  "extensions": [".png", ".webp", ".jpg", ".jpeg", ".svg"],
+  "maxBytes": 1258291
+}
